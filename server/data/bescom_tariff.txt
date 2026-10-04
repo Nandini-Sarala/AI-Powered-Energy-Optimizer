@@ -1,0 +1,24 @@
+BESCOM Electricity Tariff 2026-27 — Slab Rates & Fixed Charges
+Distribution company: Bangalore Electricity Supply Company Ltd. (BESCOM)
+State / UT: Karnataka
+Domestic energy rate: ₹5.80 per unit
+Official website: www.bescom.co.in
+
+LT-1 (Domestic / Residential)
+Energy Charge: Above 0 units at ₹5.80/unit
+Fixed Charge: ₹150/kW/mo
+Duty & Other: Electricity Tax 9%
+
+LT-3(a) (Commercial / Non-Domestic LT)
+Energy Charge: Above 0 units at ₹6.80/unit
+Fixed Charge: ₹215/kW/mo
+
+Current BESCOM FPPA (Fuel and Power Purchase Adjustment)
+Current applicable FPPA: ₹-0.34/unit
+Applicable period: Oct 2026 - Oct 2026
+
+Typical BESCOM bill calculations for LT-1 (2 kW load):
+200 units = ₹1,564
+300 units = ₹2,197
+500 units = ₹3,461
+750 units = ₹5,042

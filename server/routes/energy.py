@@ -585,10 +585,17 @@ def init_simulation(app):
                                 "$set": {"lastActiveAt": now.isoformat()}
                             }
                         )
+                        
+                        # 2. Update today's energy log with breakdown
+                        today_str = str(date.today())
+                        app_name = app_doc['name']
                         db.energylogs.update_one(
                             {"userId": user_id, "date": today_str},
                             {
-                                "$inc": {"unitsConsumed": delta_kwh},
+                                "$inc": {
+                                    "unitsConsumed": delta_kwh,
+                                    f"breakdown.{app_name}": delta_kwh
+                                },
                                 "$set": {"costPerUnit": TARIFF_RATE_RS},
                                 "$setOnInsert": {"userId": user_id, "date": today_str}
                             },

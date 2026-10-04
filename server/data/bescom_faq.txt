@@ -1,0 +1,147 @@
+Q: How To Register?
+A: Step 1: To Register the customer portal to avail the various services - Select the login > customer login page in the home page.
+Step 2: Once clicking on the customer login page. Select 'Click here to Register' since the account is not registered.
+Step 3: Now provide the Account ID, if unaware 'Click on find out Account ID' where reference bill is attached to find ID
+Step 4: Once customer provides the Account ID, registration page will appear and customer need to fill all the personal details which are mandatory
+Step 5: Provide the User ID and Password respectively which should be unique, confirm the password and click save and continue.
+Step 6: Provide the date of birth and select the security questions as per your desire. Provide the answer which selected.
+Step 7: Click on the terms and conditions of the registration and submit.
+Step 8: Once customer submitted the form, confirmation page will be displayed and your user credentials will be sent through the email which is provided while registration.
+
+Q: How To Apply For A Normal New Connection?
+A: Step 1: To avail this service kindly click on request with category as "New Connection" in other services to raise the new connection application customer no needs to login can directly apply. Under this service customer can raise a request for LT, HT/EHT AND MC/MSB.
+Step 2: Once customer click on the new connection, and needs to select the appropriate application type – LT, HT, or MC
+Step 3: Select the Business or Personal, provide all the mandatory details which are required. Click save and continue.
+Step 4: Provide the current address and corresponding address where the connection is required.
+Step 5: Provide all the miscellaneous details required for the service, for example – Power supply required, Premise location etc. Also provide the requested load which the Sum of Requested Load should be up to 150 KW or 201HP for LT / Requested Load should be less than 35000 KVA for HT/EHT and select appropriate voltage for it.
+For MC/MSB - Provide the total number of applications, number of each application and total load of all the applications also select the appropriate nature of business for the main application. For MC Connection Total load in KW should be less than 35KW
+Step 6: Provide the LEC (Contractor) details if it is available.
+Step 7: Provide the miscellaneous details and fill all the mandatory fields.
+Step 8: Once the all the fields are submitted request confirmation page will appear where customer can see the application charges break down. For normal new connection service only application fee can be paid through online, remaining additional charges needs pay by visiting the SDO office.
+
+Q: How To Change The Tariff ?
+A: Step 1: To avail this service kindly click on request with category as “Tariff Change”, it will re-direct to customer login page, Customer needs to login with the correct credentials.
+Step 2: In the customer dashboard select the category ‘JANASNEHI VIDHYUTH SEVAGALU’ under that select ‘Tariff Change’.
+Step 3: Select the preferred account id, select the desired tariff to be changed in the ‘Requested tariff’ and choose the appropriate ‘nature of new activity’ also fill all the mandatory fields appropriately and upload all the required documents for the verification purpose of the service.
+Step 4: After providing all the details click on the submit, you will receive a service request confirmation message page where you will find Request id make sure to note it down for future reference.
+Step 5: Customer can pay the applicable amount as shown in the break down and one can download the Submitted form and demand letter by clicking on it.
+
+Q: How To Change Name?
+A: Step 1: To avail this service kindly click on request with category as “Name change”, it will re-direct to customer login page, Customer needs to login with the correct credentials.
+Step 2: In the customer dashboard select the category ‘JANASNEHI VIDHYUTH SEVAGALU’ under that select Name change/Change of Ownership.
+Step 3: Select the preferred account id and fill all the mandatory fields appropriately and upload all the required documents for the verification purpose of the service.
+Step 4: After providing all the details click on the submit, you will receive a service request confirmation message page where you will find Request id make sure to note it down for future reference.
+Step 5: Customer can pay the applicable amount as shown in the break down and one can download the Submitted form and demand letter by clicking on it.
+
+Q: How To Reduce Load ?
+A: Step 1: To avail this service kindly click on request with category as “Load Reduction”, it will re-direct to customer login page, Customer needs to login with the correct credentials.
+Step 2: In the customer dashboard select the category ‘JANASNEHI VIDHYUTH SEVAGALU’ under that select ‘Load Reduction’.
+Step 3: Select the preferred account id, provide the desired load to be decrease in the ‘Load to be Reduced by’ also fill all the mandatory fields appropriately and upload all the required documents for the verification purpose of the service.
+Step 4: After providing all the details click on the submit, you will receive a service request confirmation message page where you will find Request id make sure to note it down for future reference.
+Step 5: Customer can pay the applicable amount as shown in the break down and one can download the Submitted form and demand letter by clicking on it.
+
+Q: How To Enhance The Load ?
+A: Step 1: To avail this service kindly click on request with category as “Load Enhancement”, it will re-direct to customer login page, Customer needs to login with the correct credentials.
+Step 2: In the customer dashboard select the category ‘JANASNEHI VIDHYUTH SEVAGALU’ under that select ‘Load Enhancement’.
+Step 3: Select the preferred account id, provide the desired load to be increased in the ‘Load to be Enhanced by’ also fill all the mandatory fields appropriately and upload all the required documents for the verification purpose of the service.
+Step 4: After providing all the details click on the submit, you will receive a service request confirmation message page where you will find Request id make sure to note it down for future reference.
+Step 5: Customer can pay the applicable amount as shown in the break down and one can download the Submitted form and demand letter by clicking on it.
+
+Q: What Are The Services Available In Consumer Portal ?
+A: The services provided in this Portal are:
+1:Account Summary
+2:View /Pay Bill
+3:Consumption History
+4:Consumption Calculator
+5:Billing and Payment History
+6:Update Profile
+7:Change Credentials
+8:New Connection
+9:Service Request/Complaints
+
+Q: How To Make A Payment Online ?
+A: There are 2 options:
+1: For Quick Payment: User needs to click on “Online Payment”. No Registration is required. Registered Users can also avail this Facility.
+2: For Registered Users: The User to click on Account Summary -> Pay Bill. Select the Account ID and proceed.
+
+Q: Can I Make Advance Bill Payment ?
+A: Yes. Advance Bill Payment Option is Available in pay in advance in customer portal. Please enter the desired Amount in the Free Text Field.
+
+Q: What Are RR No. And Account ID ?
+A: RR No. is the power supply connection number, painted on the meter board. This is also Printed on the monthly Electricity Bills.
+Account ID is a 10 Digit Unique No. and should be used by the User for all future communication with the Utility. It is Printed on the Electricity Bills and should be used for Registering to the Consumer Portal.
+
+Q: What Are The Documents To Be Produced Along With The New Connection Application ?
+A: 1: Registered Sale or Gift or Partition deed
+2: Khata certificate
+3: Latest Tax paid receipt
+4: Registered Lease Deed
+5: Occupancy certificate
+6: Solar Water Heater Compliance
+7: Guardianship Certificate
+8: Photo copy of PAN or TAN card
+9: Partnership firm or deed
+10: Indemnity bond Submitted
+11: Non-engagement of Child labour
+12: Geni and pahani pathrike
+13: NOC to lift water
+14: Tatkal Urgency Document
+15: Sanctioned Plan from Competent Authority
+16: Registered Architect Plan
+17: Contractor Completion and Test Report
+18: Consent Letter for Trespassing
+19: Wiring Diagram
+20: Indemnity Bond
+21: Signed Power supply agreements
+
+Q: What Does LT, HT And EHT Mean ?
+A: HT is High Tension, LT is Low Tension and EHT is Extra High Tension.
+
+Q: How Do I Get To Know About The Successful Transaction ?
+A: Once the payment is done successfully, confirmation message would be displayed on the screen, and also there is a provision to print the acknowledgement. An e-receipt would also be sent to the Email ID that was entered at the time of making payment.
+
+Q: How Can I Clarify My Doubts About Online Payments ?
+A: You may contact Customer Care -1912
+
+Q: What Shall I Do If Receipt ID Is Not Generated/Error Page Is Displayed, For An Online Payment Made, Using Bill Desk As Payment Gateway ?
+A: In the event, that money is Debited from the Bank Account, but Payment Acknowledgement has not got Generated, please abstain from making a Payment again for the same Bill. Please wait for 24 Hours for Bill Desk to confirm with the Bank and update the Payment. Bill Desk would be Emailing the Acknowledgement to the Email ID provided by the User, after obtaining the Confirmation from the Bank. User can directly Contact Bill Desk at @billdesk.com or 080-25586664
+
+Q: What Is ASD ?
+A: “ASD” means Additional Security Deposit as specified under Clause 6 of K.E.R.C. (Security Deposit) Regulations, 2007. Notified in Karnataka Gazette dated 11.10.2007. All the Consumers shall at all times maintain with the Licensee an amount equivalent to fixed charges/demand charges plus energy charges corresponding to consumption for two months (2 MMD) in case of monthly billing and three months (3 MMD) in case of bi-monthly billing as Security Deposit towards the electricity supplied/to be supplied to them against any default in payment during the period the Agreement for supply of energy is in force.
+
+Q: What Are The ASD Exceptions ?
+A: If the shortfall is less than Rs.200/- in case of LT categories and Rs.1000/- in respect of HT installations, the same need not be demanded.
+
+Q: How ASD Will Be Collected ?
+A: Where the Consumer is required to pay Additional Security Deposit, ESCOM will serve a minimum 30 day's notice containing necessary particulars effective from 1st day of April of that year. ASD shall be paid within 30 days of the date of demand.
+
+Q: Can Consumer File His Objections Against ASD Errors And Omissions ?
+A: Yes, Consumer may file his/her objections within 7 days from the date of receipt of such demand notice to the office of the issue of such demand notice [i.e., Local Assistant Executive Engineer Elec., C,O&M Sub-division]. The amount of ASD demanded may be revised based on the information, if any, furnished by the Consumer within 7 days of the receipt of objections. In case of revised demand, the payment shall be made within 15 days of the date of revised demand.
+
+Q: What Will Happen If The ASD Payment Is Not Paid?
+A: If a Consumer fails to pay the Security Deposit demanded, ESCOM shall disconnect the power supply to the installation without further notice. Any arrears due on this account shall be deemed to be arrears of electricity charges.
+
+Q: What Are The Modes Of Payment Available To Make ASD Payment ?
+A: ASD shall be paid in the form of cash/demand draft/e-payments via Debit card/Credit Card/Net Banking through ESCOM website.
+
+Q: Is There Any Interest Payable To The Consumers On The Deposits ?
+A: Yes. The Licensee shall pay interest on Security Deposit (ISD, ASD & Meter Security Deposit) of the Consumer as specified under K.E.R.C. (Interest on Security Deposit) Regulations, 2005.
+
+Q: What Is The Procedure To Get The Refund Of The Deposits Paid ?
+A: The Licensee, on termination of the agreement by either party will refund security deposits (if any) after adjustment of dues, if any, within two months from the date of termination failing which interest at 1 % per month shall be payable on the deposits for the actual days of delay.
+
+Q: What Is The Time Taken To Avail The Services Under Janasnehi Vidyuth Sevegalu (FTNC) ?
+A: 3 working days (24 hours) after registration and payment made.
+
+Q: Is Janasnehi Vidyuth Sevegalu (FTNC) Services Are Applicable To Both HT & LT Services ?
+A: Only for LT applications
+
+Q: What Are Online Payment Instructions To User ?
+A: 1: Utility in its continuous endeavor to improve consumer services, has tied up with multiple payment gateways, to offer a simple, convenient and a secured way of making payment of electricity Bills online.
+2: A consumer who wishes to make online payment may or may not register
+3: On completion of a successful transaction, an acknowledgment would get generated by the Payment Gateway and print option would also be available. An email would also be sent at the mentioned Email ID
+
+Q: What Are The Schedule Of Charges For New Connection ?
+A: Please click on below link to see the latest charges
+Schedule of charges for New Connection
+These charges are indicative only. The actual charges are to be paid as per the Demand Letter issued by the SDO

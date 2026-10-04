@@ -1,0 +1,29 @@
+HESCOM Consumer FAQ & Billing Procedures
+
+What is the procedure of Billing?
+The Bills are issued on a monthly basis, across the State of Karnataka, for domestic, non-domestic, industrial and Agricultural consumers. The Payment of Bills is to be made as per the Due Date Printed on the Bills.
+
+What are RR No. and Account ID?
+RR No. is the power supply connection number, painted on the meter board. This is also Printed on the monthly Electricity Bills.
+Account ID is a 10 Digit Unique No. and should be used by the User for all future communication with the Utility. It is Printed on the Electricity Bills, and should be used for Registering to the Consumer Portal.
+
+How to make a Payment online?
+There are 2 options:
+1) For Quick Payment: User needs to click on "Online Payment". No Registration is required. Registered Users can also avail this Facility.
+2) For Registered Users: The User to click on Account Summary -> Pay Bill. Select the Account ID and proceed.
+Advance Bill Payment Option is Available in pay in advance in customer portal. Please enter the desired Amount in the Free Text Field.
+Official Payment Portal URL: https://hescomonlineservices.nsoft.in/
+
+What is ASD?
+"ASD" means Additional Security Deposit as specified under Clause 6 of K.E.R.C. (Security Deposit) Regulations, 2007. All the Consumers shall at all times maintain with the Licensee an amount equivalent to fixed charges/demand charges plus energy charges corresponding to consumption for two months (2 MMD) in case of monthly billing as Security Deposit towards the electricity supplied to them against any default in payment.
+
+What will happen if the ASD payment is not paid?
+If a Consumer fails to pay the Security Deposit demanded, ESCOM shall disconnect the power supply to the installation without further notice. Any arrears due on this account shall be deemed to be arrears of electricity charges.
+
+Is there any interest payable to the consumers on the deposits?
+Yes. The Licensee shall pay interest on Security Deposit (ISD, ASD & Meter Security Deposit) of the Consumer as specified under K.E.R.C. (Interest on Security Deposit) Regulations, 2005.
+
+How much time it takes for obtaining a New Connection service?
+Tatkal Connection: 8 days for after filing of complete documents.
+Normal connection: 1 Month where no extension of distribution main is required.
+For cases involving extension of distribution mains: Low Tension (LT) supply 45 days, 11KV supply (HT) 60 days, 33KV supply (HT) 90 days.
