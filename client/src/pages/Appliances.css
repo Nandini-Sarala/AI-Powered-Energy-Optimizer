@@ -424,3 +424,105 @@
   .appliances-summary { gap: 8px; }
   .summary-chip { min-width: 80px; padding: 8px 12px; }
 }
+
+/* ── Lock Badge ───────────────────────────────────────────────── */
+.lock-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  margin-left: 6px;
+  cursor: help;
+  opacity: 0.9;
+  animation: pulse-lock 2s infinite;
+}
+@keyframes pulse-lock {
+  0%, 100% { opacity: 0.9; }
+  50%       { opacity: 0.5; }
+}
+
+/* ── Lock Warning Modal ───────────────────────────────────────── */
+.lock-warning-box {
+  max-width: 420px;
+  border-top: 4px solid #f59e0b;
+}
+.lock-warning-body {
+  padding: 8px 0 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.lock-icon-big {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+.lock-reason-text {
+  font-size: 0.95rem;
+  color: #374151;
+  margin: 0;
+}
+.lock-reason-box {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 10px 14px;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lock-reason-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #92400e;
+}
+.lock-reason-value {
+  font-size: 0.88rem;
+  color: #78350f;
+}
+.lock-warning-note {
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ── Override Button ──────────────────────────────────────────── */
+.btn-override {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+.btn-override:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+}
+
+/* ── Timer Badge ──────────────────────────────────────────────── */
+.timer-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  color: #0284c7;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.no-timer {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}

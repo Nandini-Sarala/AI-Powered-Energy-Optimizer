@@ -338,9 +338,9 @@ const Dashboard = () => {
       )}
 
       {/* ── Header ─────────────────────────────────────────── */}
-      <div className="dashboard-header fade-in-up">
+      <div className="dashboard-header">
         <div>
-          <h1>Hello, {user?.name?.split(' ')[0]} 👋</h1>
+          <h1>Hello, {user?.name ? user.name.split(' ')[0] : 'User'} 👋</h1>
           <p>Here's what's happening with your energy today.</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

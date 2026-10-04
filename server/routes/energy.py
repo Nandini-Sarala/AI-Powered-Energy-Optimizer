@@ -520,56 +520,64 @@ def dismiss_notification():
     return jsonify({"message": "Notifications dismissed"}), 200
 
 
-# ── Simulation Engine Background Thread ─────────────────────────────────────────
+# ── Simulation Engine Background Thread ───────────────────────────────────────────────────────────────────────────────────
 import threading
 import time
+from routes.stream import notify_clients
 
 def init_simulation(app):
     def run_simulation():
         with app.app_context():
             db = app.config["DB"]
-            SIMULATION_MULTIPLIER = 300  # 1 real sec = 300 sim secs = 5 mins. 12 real secs = 1 sim hour.
             TARIFF_RATE_RS = 5.80
-            
+            SHED_ORDER = ["Non-essential", "Medium", "Essential"]  # Essential is shed only as a last resort
+
             while True:
                 time.sleep(5)
                 try:
-                    # Find all active appliances
+                    now       = datetime.now()
+                    today_str = str(date.today())
+
+                    # ── STEP 0: Daily lock reset ────────────────────────────────────────
+                    # Clear locks set on a PREVIOUS day so every day starts fresh
+                    db.appliances.update_many(
+                        {
+                            "lockedBySystem": True,
+                            "lockDate": {"$exists": True, "$ne": None, "$lt": today_str}
+                        },
+                        {
+                            "$set": {
+                                "lockedBySystem": False,
+                                "lockReason":     None,
+                                "lockDate":       None
+                            }
+                        }
+                    )
+
+                    # ── STEP 1: Energy accumulation + per-appliance timer ────────────────────
                     active_apps = list(db.appliances.find({"status": True}))
                     if not active_apps:
                         continue
-                        
-                    now = datetime.now()
-                    
+
                     for app_doc in active_apps:
-                        user_id = app_doc["userId"]
-                        app_id = app_doc["_id"]
-                        power = app_doc["power"]
-                        quantity = app_doc.get("quantity", 1)
-                        active_count = app_doc.get("active", 1)
-                        priority = app_doc.get("priority", "Medium")
-                        
+                        user_id         = app_doc["userId"]
+                        app_id          = app_doc["_id"]
+                        power           = app_doc["power"]
+                        active_count    = app_doc.get("active", 1)
+                        timer_mins      = app_doc.get("timerMinutes")   # real minutes set by user
+                        turned_on_str   = app_doc.get("turnedOnAt")
                         last_active_str = app_doc.get("lastActiveAt")
-                        turned_on_str = app_doc.get("turnedOnAt")
-                        
+
                         if not last_active_str:
                             continue
-                            
-                        # Calculate elapsed time in seconds
+
                         last_active = datetime.fromisoformat(last_active_str)
-                        elapsed_seconds = (now - last_active).total_seconds()
-                        
-                        if elapsed_seconds <= 0:
+                        elapsed_sec = (now - last_active).total_seconds()
+                        if elapsed_sec <= 0:
                             continue
-                            
-                        # Convert to simulated hours
-                        simulated_seconds = elapsed_seconds * SIMULATION_MULTIPLIER
-                        simulated_hours = simulated_seconds / 3600.0
-                        
-                        # Calculate kWh consumed
-                        delta_kwh = (power * active_count * simulated_hours) / 1000.0
-                        
-                        # 1. Update appliance accumulated units and lastActiveAt
+
+                        # Accumulate kWh in real-time
+                        delta_kwh = (power * active_count * (elapsed_sec / 3600.0)) / 1000.0
                         db.appliances.update_one(
                             {"_id": app_id},
                             {
@@ -577,9 +585,6 @@ def init_simulation(app):
                                 "$set": {"lastActiveAt": now.isoformat()}
                             }
                         )
-                        
-                        # 2. Update today's energy log
-                        today_str = str(date.today())
                         db.energylogs.update_one(
                             {"userId": user_id, "date": today_str},
                             {
@@ -589,86 +594,120 @@ def init_simulation(app):
                             },
                             upsert=True
                         )
-                        
-                        # 3. Check Safety / Auto-off conditions
-                        # Condition A: Run limit (4 simulated hours = 48 real seconds)
-                        if turned_on_str:
-                            turned_on = datetime.fromisoformat(turned_on_str)
-                            total_elapsed_sim_hours = ((now - turned_on).total_seconds() * SIMULATION_MULTIPLIER) / 3600.0
-                            
-                            if total_elapsed_sim_hours > 4.0:
-                                # Auto turn OFF
+
+                        # ── Timer expiry: normal shutdown, NO lock ─────────────────────
+                        if timer_mins and turned_on_str:
+                            turned_on        = datetime.fromisoformat(turned_on_str)
+                            elapsed_real_min = (now - turned_on).total_seconds() / 60.0
+
+                            if elapsed_real_min >= timer_mins:
+                                # Clean shutdown — no lockedBySystem
                                 db.appliances.update_one(
                                     {"_id": app_id},
                                     {
                                         "$set": {
-                                            "status": False,
-                                            "active": 0,
-                                            "turnedOnAt": None,
-                                            "lastActiveAt": None,
-                                            "accumulatedKwhToday": 0.0
+                                            "status":       False,
+                                            "active":       0,
+                                            "turnedOnAt":   None,
+                                            "lastActiveAt": None
                                         }
                                     }
                                 )
-                                # Create a notification
-                                hours_label = round(total_elapsed_sim_hours, 1)
-                                saved_kwh = round((power * active_count * 2) / 1000.0, 2)
-                                saved_cost = round(saved_kwh * TARIFF_RATE_RS, 2)
-                                
+                                used_kwh  = round((power * active_count * (timer_mins / 60.0)) / 1000.0, 3)
+                                used_cost = round(used_kwh * TARIFF_RATE_RS, 2)
                                 db.notifications.insert_one({
-                                    "userId": user_id,
-                                    "title": f"⚠️ Auto-Off Safety Guard: {app_doc['name']}",
-                                    "message": f"Your {app_doc['name']} was automatically shut off after running for {hours_label} simulated hours. You saved approx ₹{saved_cost} (or {saved_kwh} kWh).",
-                                    "type": "safety",
-                                    "read": False,
+                                    "userId":    user_id,
+                                    "title":     f"\u23f1\ufe0f Timer Expired: {app_doc['name']}",
+                                    "message":   (
+                                        f"Your {app_doc['name']} timer of {timer_mins} min(s) has expired "
+                                        f"and was turned off normally. "
+                                        f"Energy used: {used_kwh} kWh (\u20b9{used_cost})."
+                                    ),
+                                    "type":      "timer",
+                                    "read":      False,
                                     "createdAt": now.isoformat()
                                 })
-                                continue
-                                
-                    # Condition B: Overload check (> 90% of load)
-                    # Group active appliances by user
+                                notify_clients("update", {"type": "timer_expiry", "app_id": str(app_id)})
+
+                    # ── STEP 2: Overload check — priority cascade ───────────────────────
+                    # Re-fetch after timer shutoffs
+                    active_apps = list(db.appliances.find({"status": True}))
                     user_loads = {}
                     for app_doc in active_apps:
                         uid = app_doc["userId"]
-                        if uid not in user_loads:
-                            user_loads[uid] = []
-                        user_loads[uid].append(app_doc)
-                        
+                        user_loads.setdefault(uid, []).append(app_doc)
+
                     for uid, apps in user_loads.items():
-                        sanctioned_load_w = 4000.0 # Default sanctioned limit
-                        
+                        user_doc     = db.users.find_one({"_id": uid})
+                        sanctioned_w = float((user_doc or {}).get("sanctionedLoad", 4000))
                         simultaneous_w = sum(a["power"] * a.get("active", 1) for a in apps)
-                        load_ratio = simultaneous_w / sanctioned_load_w
-                        
-                        if load_ratio > 0.90:
-                            # Turn off the flex/non-essential appliance
-                            non_essential_apps = [a for a in apps if a.get("priority") == "Non-essential"]
-                            if non_essential_apps:
-                                target_app = non_essential_apps[0]
-                                db.appliances.update_one(
-                                    {"_id": target_app["_id"]},
-                                    {
-                                        "$set": {
-                                            "status": False,
-                                            "active": 0,
-                                            "turnedOnAt": None,
-                                            "lastActiveAt": None,
-                                            "accumulatedKwhToday": 0.0
-                                        }
+                        load_pct = (simultaneous_w / sanctioned_w) * 100
+
+                        if simultaneous_w <= sanctioned_w * 0.90:
+                            continue   # Load fine — nothing to do
+
+                        shed_done = False
+                        for priority_level in SHED_ORDER:
+                            candidates = [a for a in apps if a.get("priority") == priority_level]
+                            if not candidates:
+                                continue
+
+                            # Shed highest-wattage appliance of this priority first
+                            target = max(candidates, key=lambda a: a["power"] * a.get("active", 1))
+                            lock_reason = (
+                                f"Overload: total load was {round(load_pct)}% of your "
+                                f"{int(sanctioned_w)}W sanctioned limit. "
+                                f"'{target['name']}' ({target['priority']} priority) was shut off "
+                                f"to protect your connection."
+                            )
+                            db.appliances.update_one(
+                                {"_id": target["_id"]},
+                                {
+                                    "$set": {
+                                        "status":         False,
+                                        "active":         0,
+                                        "turnedOnAt":     None,
+                                        "lastActiveAt":   None,
+                                        "lockedBySystem": True,
+                                        "lockReason":     lock_reason,
+                                        "lockDate":       today_str
                                     }
-                                )
-                                # Create notification
-                                db.notifications.insert_one({
-                                    "userId": uid,
-                                    "title": "🚨 System Overloaded — Auto-Off Activated",
-                                    "message": f"Your connection load reached {round(load_ratio * 100)}% of your limit. Non-essential appliance '{target_app['name']}' was shut off automatically to protect your connection.",
-                                    "type": "overload",
-                                    "read": False,
-                                    "createdAt": now.isoformat()
-                                })
+                                }
+                            )
+                            db.notifications.insert_one({
+                                "userId":    uid,
+                                "title":     "\U0001f6a8 Overload \u2014 Auto-Off Activated",
+                                "message":   (
+                                    f"Load reached {round(load_pct)}% of your {int(sanctioned_w)}W limit. "
+                                    f"'{target['name']}' ({target['priority']} priority) was automatically "
+                                    f"turned off. Lock resets tomorrow or override in the Appliances page."
+                                ),
+                                "type":      "overload",
+                                "read":      False,
+                                "createdAt": now.isoformat()
+                            })
+                            notify_clients("update", {"type": "overload_shed", "app_id": str(target["_id"])})
+                            shed_done = True
+                            break   # One per tick — re-check next cycle
+
+                        if not shed_done:
+                            # Only Essential appliances running — warn, never touch them
+                            db.notifications.insert_one({
+                                "userId":    uid,
+                                "title":     "\u26a1 High Load Warning",
+                                "message":   (
+                                    f"Load at {round(load_pct)}% of your {int(sanctioned_w)}W limit. "
+                                    f"All active appliances are Essential — none were auto-turned off. "
+                                    f"Please reduce usage manually."
+                                ),
+                                "type":      "warning",
+                                "read":      False,
+                                "createdAt": now.isoformat()
+                            })
+
                 except Exception as e:
                     print(f"[WARN] Simulation error: {e}")
-                    
-    # Start thread
+
     t = threading.Thread(target=run_simulation, daemon=True)
     t.start()
+

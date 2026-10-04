@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiPlus, FiMinus, FiEdit2, FiTrash2, FiX, FiZap } from 'react-icons/fi';
+import { FiPlus, FiMinus, FiEdit2, FiTrash2, FiX, FiZap, FiClock } from 'react-icons/fi';
 import api from '../services/api';
 import './Appliances.css';
 
@@ -40,9 +40,13 @@ const Appliances = () => {
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem]   = useState(null); // null = add, object = edit
-  const [form, setForm] = useState({ name: '', power: '', quantity: '', priority: 'Medium' });
+  const [nowTime, setNowTime] = useState(Date.now());
+  useEffect(() => { const int = setInterval(() => setNowTime(Date.now()), 30000); return () => clearInterval(int); }, []);
+  const [form, setForm] = useState({ name: '', power: '', quantity: '', priority: 'Medium', timerMinutes: '' });
   const [formError, setFormError] = useState('');
   const isSeeding = useRef(false);
+  // ── Lock-warning modal state ──────────────────────────────────
+  const [lockModal, setLockModal] = useState(null); // { id, reason, pendingStatus, pendingActive }
 
   // ── Fetch Appliances from Backend ─────────────────────────────
   const fetchAppliances = async () => {
@@ -83,16 +87,32 @@ const Appliances = () => {
     fetchAppliances();
   }, []);
 
+  // ── Real-Time Sync (SSE) ────────────────────
+  useEffect(() => {
+    const sse = new EventSource('http://localhost:5000/api/stream/events');
+    sse.addEventListener('update', (e) => {
+      fetchAppliances(); // Refresh data instantly when server pushes update!
+    });
+    return () => sse.close();
+  }, []);
+
+
   // ── Active count: increment ───────────────────────────────────
-  const incrementActive = async (id) => {
+  const incrementActive = async (id, override = false) => {
     const item = appliances.find(a => a._id === id);
     if (!item || item.active >= item.quantity) return;
+
+    // Lock guard — if locked and turning on, show warning first
+    if (item.lockedBySystem && !override) {
+      setLockModal({ id, reason: item.lockReason, pendingStatus: true, pendingActive: item.active + 1, action: 'increment' });
+      return;
+    }
 
     const newActive = item.active + 1;
     try {
       // Optimistic UI update
-      setAppliances(prev => prev.map(a => a._id === id ? { ...a, active: newActive, status: true } : a));
-      await api.put(`/appliances/${id}`, { active: newActive, status: true });
+      setAppliances(prev => prev.map(a => a._id === id ? { ...a, active: newActive, status: true, lockedBySystem: false, lockReason: null } : a));
+      await api.put(`/appliances/${id}`, { active: newActive, status: true, ...(override && { override: true }) });
     } catch (err) {
       console.error('Failed to update active count', err);
       // Revert on error
@@ -118,20 +138,38 @@ const Appliances = () => {
   };
 
   // ── Toggle ON/OFF ─────────────────────────────────────────────
-  const toggleStatus = async (id) => {
+  const toggleStatus = async (id, override = false) => {
     const item = appliances.find(a => a._id === id);
     if (!item) return;
 
     const newStatus = !item.status;
     const newActive = newStatus && item.active === 0 ? 1 : newStatus ? item.active : 0;
 
+    // Lock guard — if locked and turning ON, show warning modal first
+    if (newStatus && item.lockedBySystem && !override) {
+      setLockModal({ id, reason: item.lockReason, pendingStatus: newStatus, pendingActive: newActive, action: 'toggle' });
+      return;
+    }
+
     try {
-      // Optimistic UI update
-      setAppliances(prev => prev.map(a => a._id === id ? { ...a, status: newStatus, active: newActive } : a));
-      await api.put(`/appliances/${id}`, { status: newStatus, active: newActive });
+      // Optimistic UI update — also clear lock visually
+      setAppliances(prev => prev.map(a => a._id === id ? { ...a, status: newStatus, active: newActive, lockedBySystem: false, lockReason: null } : a));
+      await api.put(`/appliances/${id}`, { status: newStatus, active: newActive, ...(override && { override: true }) });
     } catch (err) {
       console.error('Failed to toggle status', err);
       fetchAppliances();
+    }
+  };
+
+  // ── Confirm override from lock modal ──────────────────────────
+  const confirmOverride = async () => {
+    if (!lockModal) return;
+    const { id, pendingStatus, pendingActive, action } = lockModal;
+    setLockModal(null);
+    if (action === 'toggle') {
+      await toggleStatus(id, true);
+    } else {
+      await incrementActive(id, true);
     }
   };
 
@@ -151,7 +189,7 @@ const Appliances = () => {
   // ── Open add modal ────────────────────────────────────────────
   const openAdd = () => {
     setEditItem(null);
-    setForm({ name: '', power: '', quantity: '1', priority: 'Medium' });
+    setForm({ name: '', power: '', quantity: '1', priority: 'Medium', timerMinutes: '' });
     setFormError('');
     setShowModal(true);
   };
@@ -163,7 +201,8 @@ const Appliances = () => {
       name: appliance.name,
       power: appliance.power.toString(),
       quantity: appliance.quantity.toString(),
-      priority: appliance.priority || 'Medium'
+      priority: appliance.priority || 'Medium',
+      timerMinutes: appliance.timerMinutes ? appliance.timerMinutes.toString() : ''
     });
     setFormError('');
     setShowModal(true);
@@ -171,7 +210,7 @@ const Appliances = () => {
 
   // ── Save add / edit ───────────────────────────────────────────
   const handleSave = async () => {
-    const { name, power, quantity, priority } = form;
+    const { name, power, quantity, priority, timerMinutes } = form;
     if (!name.trim())        { setFormError('Appliance name is required'); return; }
     if (!power || Number(power) <= 0){ setFormError('Power (watts) must be > 0');  return; }
     if (!quantity || Number(quantity) < 1){ setFormError('Quantity must be at least 1'); return; }
@@ -184,7 +223,8 @@ const Appliances = () => {
           name: name.trim(),
           power: Number(power),
           quantity: Number(quantity),
-          priority
+          priority,
+          timerMinutes
         });
         setAppliances(prev => prev.map(a => a._id === editItem._id ? res.data : a));
       } else {
@@ -194,6 +234,7 @@ const Appliances = () => {
           power: Number(power),
           quantity: Number(quantity),
           priority,
+          timerMinutes,
           active: 0,
           status: false
         });
@@ -278,6 +319,7 @@ const Appliances = () => {
                 <th>Priority</th>
                 <th>Quantity</th>
                 <th>Active</th>
+                <th>Timer</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -292,6 +334,14 @@ const Appliances = () => {
                     <div className="appliance-name-cell">
                       <span className="appliance-emoji">{getIcon(a.name)}</span>
                       <span className="appliance-name">{a.name}</span>
+                      {a.lockedBySystem && (
+                        <span
+                          className="lock-badge"
+                          title={a.lockReason || 'Turned off by system'}
+                        >
+                          🔒
+                        </span>
+                      )}
                     </div>
                   </td>
 
@@ -336,6 +386,24 @@ const Appliances = () => {
                         <FiPlus size={12} />
                       </button>
                     </div>
+                  </td>
+
+                  {/* Timer */}
+                  <td>
+                    {a.timerMinutes ? (
+                      <div className="timer-badge">
+                        <FiClock size={12} style={{marginRight: "4px"}} />
+                        {a.status && a.turnedOnAt ? (
+                          <span>
+                            {Math.max(0, Math.ceil(a.timerMinutes - (nowTime - new Date(a.turnedOnAt).getTime()) / 60000))}m left
+                          </span>
+                        ) : (
+                          <span>{a.timerMinutes}m</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="no-timer">-</span>
+                    )}
                   </td>
 
                   {/* Status toggle */}
@@ -429,12 +497,53 @@ const Appliances = () => {
                   onChange={(e) => { setForm({ ...form, quantity: e.target.value }); setFormError(''); }}
                 />
               </div>
+              <div className="form-field">
+                <label>Timer (minutes)</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 30 (Optional)"
+                  min="1"
+                  value={form.timerMinutes}
+                  onChange={(e) => { setForm({ ...form, timerMinutes: e.target.value }); setFormError(''); }}
+                />
+              </div>
             </div>
 
             <div className="modal-actions">
               <button className="btn-cancel" onClick={() => setShowModal(false)}>Cancel</button>
               <button className="btn-save" onClick={handleSave} disabled={loading}>
                 {loading ? 'Saving...' : editItem ? 'Save Changes' : 'Add Appliance'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Lock Warning Modal ───────────────────────────────────── */}
+      {lockModal && (
+        <div className="modal-overlay" onClick={() => setLockModal(null)}>
+          <div className="modal-box lock-warning-box" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>⚠️ System Lock Warning</h3>
+              <button className="modal-close" onClick={() => setLockModal(null)}><FiX size={18} /></button>
+            </div>
+            <div className="lock-warning-body">
+              <div className="lock-icon-big">🔒</div>
+              <p className="lock-reason-text">
+                This appliance was <strong>automatically turned off by the system</strong>.
+              </p>
+              <div className="lock-reason-box">
+                <span className="lock-reason-label">Reason:</span>
+                <span className="lock-reason-value">{lockModal.reason || 'System safety guard triggered.'}</span>
+              </div>
+              <p className="lock-warning-note">
+                Turning it back on may cause overload or exceed usage limits. Are you sure you want to override the system?
+              </p>
+            </div>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setLockModal(null)}>Cancel</button>
+              <button className="btn-override" onClick={confirmOverride}>
+                🔓 Turn On Anyway
               </button>
             </div>
           </div>

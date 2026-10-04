@@ -61,6 +61,9 @@ app.register_blueprint(energy_bp, url_prefix="/api/energy")
 app.register_blueprint(appliances_bp, url_prefix="/api/appliances")
 app.register_blueprint(chat_bp, url_prefix="/api/chat")
 
+from routes.stream import stream_bp
+app.register_blueprint(stream_bp, url_prefix="/api/stream")
+
 # ── Start Simulation Engine daemon thread ──────────────────────────────────────
 from routes.energy import init_simulation
 init_simulation(app)
@@ -69,6 +72,15 @@ init_simulation(app)
 @app.route("/")
 def index():
     return {"message": "Energy Optimizer API is running (Flask)"}
+
+@app.route("/api/health")
+def health_check():
+    try:
+        # Ping MongoDB to ensure it is connected and responding
+        db.command("ping")
+        return {"status": "ok", "database": "connected"}, 200
+    except Exception as e:
+        return {"status": "error", "database": "disconnected", "details": str(e)}, 503
 
 # ── Start Server ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
