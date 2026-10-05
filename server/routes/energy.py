@@ -230,12 +230,113 @@ def add_log():
 @protect
 def get_dashboard():
     db   = current_app.config["DB"]
-    logs = list(db.energylogs.find({"userId": ObjectId(g.user_id)})
-                              .sort("date", -1).limit(30))
+    user_id = ObjectId(g.user_id)
+    user = db.users.find_one({"_id": user_id}) or {}
 
-    user = db.users.find_one({"_id": ObjectId(g.user_id)}) or {}
+    today = date.today()
+    current_year = today.year
+    current_month = today.month
+    
+    # 1. Close previous months to update the reward wallet
+    import calendar
+    
+    # Determine the "previous month"
+    prev_month_date = today.replace(day=1) - timedelta(days=1)
+    prev_year = prev_month_date.year
+    prev_month = prev_month_date.month
+    prev_month_str = f"{prev_year}-{prev_month:02d}"
+    
+    # Read the user's wallet state
+    wallet_balance = float(user.get("reward_wallet_balance", 0.0))
+    last_closed_month = user.get("last_closed_month", "")
+    
+    if last_closed_month < prev_month_str:
+        # Calculate prev_month's total units
+        pm_start = f"{prev_year}-{prev_month:02d}-01"
+        pm_end = f"{prev_year}-{prev_month:02d}-{calendar.monthrange(prev_year, prev_month)[1]:02d}"
+        pm_logs = list(db.energylogs.find({
+            "userId": user_id, 
+            "date": {"$gte": pm_start, "$lte": pm_end}
+        }))
+        pm_total_units = sum(l.get("unitsConsumed", 0) for l in pm_logs)
+        
+        # Calculate the bill for prev_month to know how much discount to deduct
+        sanctioned_load_watts = float(user.get("sanctionedLoad", 4000))
+        tariff_rate = float(user.get("tariffRate", 5.80))
+        historical_avg_units = float(user.get("historicalAvg", 113.53))
+        entitlement_units = min(200.0, round(historical_avg_units * 1.10, 2))
+        fixed_charge = (sanctioned_load_watts / 1000.0) * 150
+        
+        if pm_total_units <= 200.0:
+            billable = max(0.0, pm_total_units - entitlement_units)
+            if billable == 0.0:
+                pm_bill = 0.0
+            else:
+                pm_bill = (billable * tariff_rate) + fixed_charge
+        else:
+            pm_bill = (pm_total_units * tariff_rate) + fixed_charge
+            
+        # Deduct wallet balance used for prev_month's bill
+        used_points = min(wallet_balance, pm_bill)
+        wallet_balance -= used_points
+        
+        # Calculate new points earned in prev_month by comparing to the CSV baseline
+        import csv
+        import os
+        csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ml", "dataset", "monthly_units_consumed.csv")
+        py_total_units = 0.0
+        prev_month_name = calendar.month_name[prev_month]
+        try:
+            with open(csv_path, newline="") as f:
+                reader = csv.reader(f)
+                next(reader, None)
+                for row in reader:
+                    if len(row) >= 3 and row[0].strip() == str(prev_year - 1) and row[1].strip() == prev_month_name:
+                        py_total_units = float(row[2].strip())
+                        break
+        except Exception:
+            pass
 
-    # Extract user system settings (DB > query params > defaults)
+        # Calculate reward based on CSV baseline
+        if py_total_units > 0:
+            units_saved = py_total_units - pm_total_units
+            if units_saved > 0:
+                new_points = int(units_saved // 10)
+                wallet_balance += new_points
+                
+        # Save updated wallet state
+        db.users.update_one(
+            {"_id": user_id},
+            {"$set": {
+                "reward_wallet_balance": wallet_balance,
+                "last_closed_month": prev_month_str
+            }}
+        )
+
+    # 2. Predict the current month's bill
+    cm_start = f"{current_year}-{current_month:02d}-01"
+    cm_end = f"{current_year}-{current_month:02d}-{calendar.monthrange(current_year, current_month)[1]:02d}"
+    cm_logs = list(db.energylogs.find({
+        "userId": user_id,
+        "date": {"$gte": cm_start, "$lte": cm_end}
+    }).sort("date", -1))
+    
+    today_str = str(today)
+    today_log = cm_logs[0] if cm_logs and cm_logs[0]["date"] == today_str else None
+    today_units = today_log["unitsConsumed"] if today_log else 0
+    today_cost = round(today_units * float(user.get("tariffRate", 5.80)), 2)
+
+    total_units_so_far = sum(l.get("unitsConsumed", 0) for l in cm_logs)
+    days_elapsed = today.day
+    days_in_month = calendar.monthrange(current_year, current_month)[1]
+    
+    # Strict Calendar Month Prediction
+    if days_elapsed == 1 and total_units_so_far == 0:
+        total_units_this_month = 0.0
+    else:
+        avg_daily = total_units_so_far / days_elapsed
+        total_units_this_month = avg_daily * days_in_month
+
     sanctioned_load_watts = float(user.get("sanctionedLoad") or request.args.get("sanctionedLoad") or 4000)
     tariff_rate = float(user.get("tariffRate") or request.args.get("tariffRate") or 5.80)
     historical_avg_units = float(user.get("historicalAvg") or request.args.get("historicalAvg") or 113.53)
@@ -244,30 +345,14 @@ def get_dashboard():
     FIXED_CHARGE_PER_KW = 150
     GRUHA_JYOTHI_MAX_LIMIT = 200.0
 
-    # Calculate dynamic Gruha Jyothi Entitlement: average + 10% buffer, capped at 200 units maximum
     entitlement_units = min(GRUHA_JYOTHI_MAX_LIMIT, round(historical_avg_units * 1.10, 2))
 
-    today_str       = str(date.today())
-    today_log       = logs[0] if logs and logs[0]["date"] == today_str else None
-    today_units     = today_log["unitsConsumed"] if today_log else 0
-    today_cost      = round(today_units * tariff_rate, 2)
-
-    total_units     = sum(l["unitsConsumed"] for l in logs)
-    avg_daily       = (total_units / len(logs)) if logs else today_units
-    total_units_this_month = avg_daily * 30
-
-    # 3-Tier Gruha Jyothi calculation:
-    # Tier 1: Below entitlement (<= entitlement_units): 100% free (Net Bill = ₹0.00, Fixed Charge & Energy Charge waived)
-    # Tier 2: Entitlement < units <= 200: Pay excess above entitlement + Fixed Charge
-    # Tier 3: Units > 200: Entire subsidy forfeited, 100% units billable + Fixed Charge
     if total_units_this_month <= GRUHA_JYOTHI_MAX_LIMIT:
         free_units = min(total_units_this_month, entitlement_units)
         billable_units = max(0.0, total_units_this_month - entitlement_units)
         subsidy_forfeited = False
 
         if billable_units == 0.0:
-            # Under official Gruha Jyothi scheme, if usage is within entitlement, Govt of Karnataka
-            # waives both Energy Charge and Fixed Charge -> Total Bill = ₹0.00
             energy_charge = 0.0
             fixed_charge = 0.0
             predicted_bill = 0.0
@@ -283,41 +368,38 @@ def get_dashboard():
         fixed_charge = sanctioned_load_kw * FIXED_CHARGE_PER_KW
         predicted_bill = round(energy_charge + fixed_charge, 2)
 
-    yesterday_units = logs[1]["unitsConsumed"] if len(logs) > 1 else 0
-    saved_today     = round(yesterday_units - today_units, 2)
+    yesterday_date_str = str(today - timedelta(days=1))
+    yesterday_log = next((l for l in cm_logs if l["date"] == yesterday_date_str), None)
+    yesterday_units = yesterday_log["unitsConsumed"] if yesterday_log else 0
+    saved_today = round(yesterday_units - today_units, 2)
 
-    # ── Rewards & Discount Calculation ──
+    # Discount applied for the current month
+    discount_applied = min(wallet_balance, predicted_bill)
+    final_bill = predicted_bill - discount_applied
+
+    # Fetch prev_year_units for the frontend's comparison graph from CSV
     import csv
+    import os
     csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ml", "dataset", "monthly_units_consumed.csv")
-    prev_year_units = 776.589 # Fallback for July 2025
+    prev_year_units = 0.0
+    curr_month_name = calendar.month_name[current_month]
     try:
         with open(csv_path, newline="") as f:
             reader = csv.reader(f)
             next(reader, None)
             for row in reader:
-                if len(row) >= 3 and row[0].strip() == "2025" and row[1].strip() == "July":
+                if len(row) >= 3 and row[0].strip() == str(current_year - 1) and row[1].strip() == curr_month_name:
                     prev_year_units = float(row[2].strip())
                     break
     except Exception:
         pass
-
-    saved_units = prev_year_units - total_units_this_month
-    if saved_units > 0:
-        reward_points = int(saved_units // 10)
-        discount = float(reward_points)
-    else:
-        reward_points = 0
-        discount = 0.0
-
-    discount = min(discount, predicted_bill)
-    final_bill = predicted_bill - discount
 
     return jsonify({
         "todayUnits":          today_units,
         "todayCost":           str(today_cost),
         "predictedMonthlyBill":str(predicted_bill),
         "savedToday":          str(max(saved_today, 0)),
-        "logsCount":           len(logs),
+        "logsCount":           len(cm_logs),
         "totalUnitsMonth":     round(total_units_this_month, 2),
         "historicalAvg":       historical_avg_units,
         "entitlementUnits":    entitlement_units,
@@ -329,8 +411,8 @@ def get_dashboard():
         "sanctionedLoadKw":    sanctioned_load_kw,
         "energyCharge":        round(energy_charge, 2),
         "fixedCharge":         round(fixed_charge, 2),
-        "rewardPoints":        reward_points,
-        "discountApplied":     round(discount, 2),
+        "rewardPoints":        int(wallet_balance),
+        "discountApplied":     round(discount_applied, 2),
         "finalBill":           round(final_bill, 2),
         "prevYearUnits":       round(prev_year_units, 2)
     }), 200

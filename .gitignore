@@ -43,6 +43,11 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 venv/
-.venv/
 env/
+.venv/
 .env_python/
+
+# Vector DB
+*.sqlite3
+chroma_db/
+server/chroma_db/

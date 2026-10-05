@@ -1,0 +1,22 @@
+MESCOM Electricity Tariff Rates 2026 (Latest Updated)
+
+LT-1 Domestic (Gruha Jyothi - 200 Units Free)
+Energy Rate (per Unit): Flat Rate ₹7.00 / unit
+Fixed / Demand Charge: ₹115.00 / kW / month
+Karnataka has shifted to a Single Slab of ₹7.00/unit for Domestic. Fuel surcharge includes ₹0.56 FY25 True-up recovery.
+
+LT-3 Commercial Lighting & Power
+Energy Rate (per Unit): Flat Rate ₹7.50 / unit
+Fixed / Demand Charge: ₹240.00 / kW / month
+
+LT-5 Industrial (Motive Power)
+Energy Rate (per Unit): Flat Rate ₹5.40 / unit
+Fixed / Demand Charge: ₹170.00 / kW / month
+
+LT-6(c) EV Charging Station
+Energy Rate (per Unit): Flat Rate ₹4.50 / unit
+Fixed / Demand Charge: ₹70.00 / kW / month
+
+State Electricity Duty: 9%
+Fuel Surcharge (FPPCA/FAC): ₹0.92 / unit
+Billing Cycle: Monthly

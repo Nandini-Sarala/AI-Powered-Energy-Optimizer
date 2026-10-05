@@ -33,6 +33,9 @@ Step 3: Select the preferred account id and fill all the mandatory fields approp
 Step 4: After providing all the details click on the submit, you will receive a service request confirmation message page where you will find Request id make sure to note it down for future reference.
 Step 5: Customer can pay the applicable amount as shown in the break down and one can download the Submitted form and demand letter by clicking on it.
 
+Q: How much does a name change cost?
+A: The official cost for a BESCOM name change is approximately ₹1,294 to ₹1,300. This is typically broken down into a Processing Fee (around ₹100 for LT connections or ₹500 for HT connections) and Stamp Paper & Documentation costs (around ₹,1000 to ₹1,200 for e-stamp paper for the Indemnity Bond and Power Supply Agreement). Ensure all outstanding dues are cleared before applying.
+
 Q: How To Reduce Load ?
 A: Step 1: To avail this service kindly click on request with category as “Load Reduction”, it will re-direct to customer login page, Customer needs to login with the correct credentials.
 Step 2: In the customer dashboard select the category ‘JANASNEHI VIDHYUTH SEVAGALU’ under that select ‘Load Reduction’.

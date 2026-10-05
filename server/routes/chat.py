@@ -14,9 +14,19 @@ import io
 
 def scrape_official_info(query):
     try:
-        # Determine if query is for BESCOM or HESCOM
-        is_bescom = "bescom" in query.lower()
-        search_suffix = "Karnataka BESCOM" if is_bescom else "Karnataka HESCOM"
+        # Determine which ESCOM the query is for
+        query_lower = query.lower()
+        if "bescom" in query_lower:
+            search_suffix = "Karnataka BESCOM"
+        elif "mescom" in query_lower:
+            search_suffix = "Karnataka MESCOM"
+        elif "gescom" in query_lower:
+            search_suffix = "Karnataka GESCOM"
+        elif "cesc" in query_lower:
+            search_suffix = "Karnataka CESC Mysore"
+        else:
+            search_suffix = "Karnataka HESCOM"
+            
         search_query = f"{query} {search_suffix}"
         search_results = DDGS().text(search_query, max_results=1)
         if not search_results:
@@ -105,7 +115,7 @@ def handle_chat():
             "RULES:\n"
             "A. Relevant Question & Info Available: Answer using the KNOWLEDGE BASE provided below. If the answer involves an actionable step, provide a direct clickable markdown link. If you use the LIVE WEB DATA, cite the source URL. Ignore obvious junk/unreliable info from the web data.\n"
             "B. Relevant Question & Info Missing: If the exact specific information is unavailable in both the web data and local database, politely state that the information could not be found. Do not classify it as off-topic.\n"
-            "C. Unrelated Question: If the user asks anything completely unrelated to energy or Karnataka schemes (e.g. colors, coding, general trivia), politely explain that the chatbot is designed for home electricity consumption, billing, tariffs, energy-saving recommendations, and Karnataka government schemes (Gruha Jyothi, Yuva Nidhi, etc). It supports both HESCOM and BESCOM queries.\n"
+            "C. Unrelated Question: If the user asks anything completely unrelated to energy or Karnataka schemes (e.g. colors, coding, general trivia), politely explain that the chatbot is designed for home electricity consumption, billing, tariffs, energy-saving recommendations, and Karnataka government schemes (Gruha Jyothi, Yuva Nidhi, etc). It supports all Karnataka ESCOMs including BESCOM, HESCOM, MESCOM, GESCOM, and CESC.\n"
             "CRITICAL RULE: Never invent tariff rates or claim that an older tariff is current.\n\n"
             f"USER PROFILE:\n"
             f"- Name: {user.get('name', 'User')}\n"

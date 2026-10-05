@@ -1,0 +1,48 @@
+MESCOM Frequently Asked Questions
+
+Q: How To Register ?
+A: Step 1: To Register the customer portal to avail the various services - Select the login > customer login page in the home page
+Step 2: Once clicking on the customer login page. Select 'Click here to Register' since the account is not registered.
+Step 3: Now provide the Account ID, if unaware 'Click on find out Account ID' where reference bill is attached to find ID
+Step 4: Once customer provides the Account ID, registration page will appear and customer need to fill all the personal details which are mandatory
+
+Q: How To Apply For A New Connection ?
+A: Step 1: To avail this service kindly click on request with category as “New Connection” in Janasnehni Vidyuth Sevegalu, to raise the new connection application customer no needs to login can directly apply. Under JVS customer can raise a request up to total load of 17.5KW.
+
+Q: How To Change The Tariff ?
+A: Step 1: To avail this service kindly click on request with category as “Tariff Change”, it will re-direct to customer login page, Customer needs to login with the correct credentials.
+Step 2: In the customer dashboard select the category ‘JANASNEHI VIDHYUTH SEVAGALU’ under that select ‘Tariff Change’.
+
+Q: How To Change Name?
+A: Step 1: To avail this service kindly click on request with category as “Name change”, it will re-direct to customer login page, Customer needs to login with the correct credentials.
+Step 2: In the customer dashboard select the category ‘JANASNEHI VIDHYUTH SEVAGALU’ under that select Name change/Change of Ownership.
+
+Q: How To Reduce Load ?
+A: Step 1: To avail this service kindly click on request with category as “Load Reduction”, it will re-direct to customer login page, Customer needs to login with the correct credentials.
+
+Q: How To Enhance The Load ?
+A: Step 1: To avail this service kindly click on request with category as “Load Enhancement”, it will re-direct to customer login page, Customer needs to login with the correct credentials.
+
+Q: What Are The Services Available In Consumer Portal ?
+A: 1:Account Summary 2:View /Pay Bill 3:Consumption History 4:Consumption Calculator 5:Billing and Payment History 6:Update Profile 7:Change Credentials 8:New Connection 9:Service Request/Complaints
+
+Q: How To Make A Payment Online ?
+A: There are 2 options: 1: For Quick Payment: User needs to click on “Online Payment”. No Registration is required. 2: For Registered Users: The User to click on Account Summary -> Pay Bill.
+
+Q: Can I Make Advance Bill Payment ?
+A: Yes. Advance Bill Payment Option is Available in pay in advance in customer portal.
+
+Q: What Are RR No. And Account ID ?
+A: RR No. is the power supply connection number, painted on the meter board. Account ID is a 10 Digit Unique No. and should be used by the User for all future communication.
+
+Q: What Does LT, HT And EHT Mean ?
+A: HT is High Tension, LT is Low Tension and EHT is Extra High Tension.
+
+Q: What Is ASD ?
+A: “ASD” means Additional Security Deposit as specified under Clause 6 of K.E.R.C. (Security Deposit) Regulations, 2007.
+
+Q: What Are The ASD Exceptions ?
+A: If the shortfall is less than Rs.200/- in case of LT categories and Rs.1000/- in respect of HT installations, the same need not be demanded.
+
+Q: How ASD Will Be Collected ?
+A: Where the Consumer is required to pay Additional Security Deposit, ESCOM will serve a minimum 30 day's notice containing necessary particulars effective from 1st day of April of that year. ASD shall be paid within 30 days of the date of demand.
