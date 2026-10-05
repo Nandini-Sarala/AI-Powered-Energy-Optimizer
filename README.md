@@ -14,7 +14,8 @@ AI-Powered-Energy-Optimizer/
 │   │   │   └── api.js             ← Axios instance + JWT interceptor
 │   │   ├── components/
 │   │   │   ├── Sidebar.jsx        ← Navigation sidebar
-│   │   │   └── PrivateRoute.jsx   ← Route guard (requires JWT)
+│   │   │   ├── PrivateRoute.jsx   ← Route guard (requires JWT)
+│   │   │   └── EnergyBot.jsx      ← AI Chatbot UI
 │   │   ├── pages/
 │   │   │   ├── Login.jsx          ← Login / Signup page
 │   │   │   ├── Dashboard.jsx      ← Main dashboard (⭐ Key page)
@@ -27,38 +28,42 @@ AI-Powered-Energy-Optimizer/
 ├── server/                    # Python + Flask Backend
 │   ├── ml/                        # Machine Learning Models
 │   │   ├── predict.py             ← ML Prediction Logic
+│   │   ├── dataset/               ← Historical usage datasets (CSV)
 │   │   └── models/                ← Serialized Scikit-Learn models
 │   ├── routes/
 │   │   ├── auth.py                ← POST /api/auth/login, /register
-│   │   ├── energy.py              ← GET /api/energy/weather, /logs, AI shed logic
+│   │   ├── energy.py              ← Calendar bill prediction, rewards
 │   │   ├── appliances.py          ← CRUD operations for appliances
+│   │   ├── chat.py                ← AI Chatbot (Groq API, RAG, Web Scraper)
 │   │   └── middleware.py          ← JWT protection & helpers
+│   ├── chroma_db/                 ← Local vector database for RAG (Ignored in Git)
 │   ├── app.py                     ← Flask server entry & health check
 │   ├── physical_simulator.py      ← ESP32 Wokwi Hardware Simulator Integration
 │   ├── requirements.txt           ← Python dependencies
-│   └── .env                       ← PORT, MONGO_URI, JWT_SECRET, OPENWEATHER_API_KEY
+│   └── .env                       ← PORT, MONGO_URI, JWT_SECRET, GROQ_API_KEY
 ```
 
 ---
 
 ## 🚀 Key Features Built
 
-1. **Dashboard Analytics**: Real-time energy prediction, charts (Recharts), weather integration, and reward points.
-2. **AI Aggressive Load Shedding**: When sanctioned load is exceeded, the system automatically checks priorities (Non-essential -> Medium -> Essential) and intelligently shuts down appliances to protect the grid.
-3. **Physical Hardware Integration (ESP32)**: Built-in support for Wokwi ESP32 Simulation. Allows real-time HTTP polling and interaction between physical switches and the React dashboard via a local tunnel.
-4. **Appliance Timers**: Manual shutdown timers applied directly to devices via the Appliances UI.
-5. **Production Health Checks**: The Flask backend exposes a `/api/health` endpoint that actively pings the MongoDB cluster to ensure system uptime.
+1. **Dashboard Analytics & Calendar Billing**: Real-time energy prediction, precise calendar-month billing logic, and dynamic charts (Recharts).
+2. **AI EnergyBot (RAG Chatbot)**: A localized AI assistant powered by Groq (Qwen/LLaMa) and ChromaDB. It understands your specific tariff/appliance data and safely falls back to live DuckDuckGo web scraping if local documents are missing.
+3. **Persistent Reward Wallet**: Users earn reward points directly based on actual energy savings compared to historical CSV datasets, which are securely persisted in MongoDB.
+4. **AI Aggressive Load Shedding**: When sanctioned load is exceeded, the system automatically checks priorities (Non-essential -> Medium -> Essential) and intelligently shuts down appliances to protect the grid.
+5. **Physical Hardware Integration (ESP32)**: Built-in support for Wokwi ESP32 Simulation. Allows real-time HTTP polling and interaction between physical switches and the React dashboard via a local tunnel.
 
 ---
 
 ## 🚀 How to Run
 
 ### Step 1 — Database and API Setup
-1. **OpenWeatherMap**: Go to [OpenWeatherMap](https://openweathermap.org/api), sign up, get your free API key.
-2. **MongoDB**: Have a local MongoDB running (`mongodb://localhost:27017`) OR a cloud Atlas cluster.
-3. Paste these credentials into both `.env` files:
-   - `server/.env` → `OPENWEATHER_API_KEY` and `MONGO_URI`
-   - `client/.env` → `VITE_OPENWEATHER_API_KEY` (if used directly by frontend)
+1. **Groq API**: Get a free API key from [Groq Cloud](https://console.groq.com/keys) to run the AI chatbot.
+2. **OpenWeatherMap**: Get a free API key from [OpenWeatherMap](https://openweathermap.org/api).
+3. **MongoDB**: Have a local MongoDB running (`mongodb://localhost:27017`) OR a cloud Atlas cluster.
+4. Paste these credentials into both `.env` files:
+   - `server/.env` → `OPENWEATHER_API_KEY`, `MONGO_URI`, and `GROQ_API_KEY`
+   - `client/.env` → `VITE_OPENWEATHER_API_KEY`
 
 ### Step 2 — Start Backend (Python/Flask)
 Open a terminal and run:
@@ -69,7 +74,6 @@ python -m venv venv           # Optional: Create virtual environment
 pip install -r requirements.txt
 python app.py
 # Server runs on http://localhost:5000
-# Check Health: http://localhost:5000/api/health
 ```
 
 ### Step 3 — Start Frontend (React/Vite)
@@ -96,8 +100,11 @@ python physical_simulator.py
 ```
 React (Vite)                Flask (Python)          MongoDB / ML Models / ESP32
 ─────────────               ──────────────          ──────────────────────────
-Dashboard       →  GET /api/energy/dashboard →  PyMongo fetch & AI logic
-                ←  { stats, notifications }  ←  Aggressive shedding evaluation
+Dashboard       →  GET /api/energy/dashboard →  PyMongo fetch & Billing logic
+                ←  { stats, rewards }        ←  Calculates Wallet Discounts
+
+EnergyBot UI    →  POST /api/chat            →  ChromaDB / Groq LLM API
+                ←  { reply }                 ←  RAG + Web Scraper
 
 Physical Switch →  POST /api/hardware        →  Flask processes manual override
 (Wokwi ESP32)   ←  GET  /api/hardware        ←  ESP32 polls backend every 3s
@@ -107,20 +114,8 @@ Physical Switch →  POST /api/hardware        →  Flask processes manual overr
 | Concept | Where Used |
 |---------|-----------|
 | **JWT Authentication** | `Flask-JWT-Extended` — `create_access_token()` + `@jwt_required()` |
-| **Password Hashing** | `bcrypt` python library in `auth.py` |
+| **Retrieval-Augmented Generation (RAG)** | `chat.py` — Combining ChromaDB local rules with Groq LLM |
 | **React Context API** | `AuthContext.jsx` — global auth state |
 | **Axios Interceptors** | `api.js` — auto-attach JWT to all requests |
-| **PyMongo Database** | Native MongoDB queries and Health Checks (`db.command('ping')`) |
+| **PyMongo Database** | Native MongoDB queries |
 | **IoT Architecture** | HTTP Polling from Wokwi ESP32 to Python via Localtunnel |
-
----
-
-## 🔐 Authentication Flow
-```
-1. User fills signup form → POST /api/auth/register
-2. Server (Flask): bcrypt hashes password → PyMongo saves to MongoDB
-3. Server (Flask): Flask-JWT-Extended signs JWT → returns to client
-4. Client (React): stores token in localStorage
-5. All subsequent requests: Axios interceptor adds "Authorization: Bearer <token>"
-6. Protected routes: @jwt_required() decorator verifies JWT in Flask routes
-```
