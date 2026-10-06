@@ -281,21 +281,24 @@ def get_dashboard():
         wallet_balance -= used_points
         
         # Calculate new points earned in prev_month by comparing to the CSV baseline
-        import csv
-        import os
-        csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ml", "dataset", "monthly_units_consumed.csv")
+        user_email = user.get("email", "")
         py_total_units = 0.0
-        prev_month_name = calendar.month_name[prev_month]
-        try:
-            with open(csv_path, newline="") as f:
-                reader = csv.reader(f)
-                next(reader, None)
-                for row in reader:
-                    if len(row) >= 3 and row[0].strip() == str(prev_year - 1) and row[1].strip() == prev_month_name:
-                        py_total_units = float(row[2].strip())
-                        break
-        except Exception:
-            pass
+        
+        if user_email == "kanishkagurav9@gmail.com":
+            import csv
+            import os
+            csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ml", "dataset", "monthly_units_consumed.csv")
+            prev_month_name = calendar.month_name[prev_month]
+            try:
+                with open(csv_path, newline="") as f:
+                    reader = csv.reader(f)
+                    next(reader, None)
+                    for row in reader:
+                        if len(row) >= 3 and row[0].strip() == str(prev_year - 1) and row[1].strip() == prev_month_name:
+                            py_total_units = float(row[2].strip())
+                            break
+            except Exception:
+                pass
 
         # Calculate reward based on CSV baseline
         if py_total_units > 0:
@@ -378,21 +381,24 @@ def get_dashboard():
     final_bill = predicted_bill - discount_applied
 
     # Fetch prev_year_units for the frontend's comparison graph from CSV
-    import csv
-    import os
-    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ml", "dataset", "monthly_units_consumed.csv")
+    user_email = user.get("email", "")
     prev_year_units = 0.0
-    curr_month_name = calendar.month_name[current_month]
-    try:
-        with open(csv_path, newline="") as f:
-            reader = csv.reader(f)
-            next(reader, None)
-            for row in reader:
-                if len(row) >= 3 and row[0].strip() == str(current_year - 1) and row[1].strip() == curr_month_name:
-                    prev_year_units = float(row[2].strip())
-                    break
-    except Exception:
-        pass
+    
+    if user_email == "kanishkagurav9@gmail.com":
+        import csv
+        import os
+        csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ml", "dataset", "monthly_units_consumed.csv")
+        curr_month_name = calendar.month_name[current_month]
+        try:
+            with open(csv_path, newline="") as f:
+                reader = csv.reader(f)
+                next(reader, None)
+                for row in reader:
+                    if len(row) >= 3 and row[0].strip() == str(current_year - 1) and row[1].strip() == curr_month_name:
+                        prev_year_units = float(row[2].strip())
+                        break
+        except Exception:
+            pass
 
     return jsonify({
         "todayUnits":          today_units,
