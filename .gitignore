@@ -51,3 +51,9 @@ env/
 *.sqlite3
 chroma_db/
 server/chroma_db/
+
+# Temporary debug and fix scripts
+server/fix_db.py
+server/debug_db.py
+server/edit_auth.py
+server/reset_pwd.py

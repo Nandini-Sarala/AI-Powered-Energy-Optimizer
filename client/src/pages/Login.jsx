@@ -63,6 +63,33 @@ const LoginPage = () => {
     }
   };
 
+  // ── Forgot Password Demo ─────────────────────────────────────────
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    const email = window.prompt("🔑 Forgot Password\n\nEnter your registered email address:");
+    if (!email) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/reset-password-demo', {
+         method: 'POST',
+         headers: {'Content-Type': 'application/json'},
+         body: JSON.stringify({email: email.trim()})
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        window.alert('❌ Error: ' + (data.message || 'Could not reset password.'));
+      } else {
+        window.alert('✅ Success!\n\nWe have sent a new temporary password to your email. Please check your inbox and log in.');
+      }
+    } catch (err) {
+      window.alert('❌ Network error. Make sure the backend is running.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="login-page">
 
@@ -184,7 +211,9 @@ const LoginPage = () => {
             </div>
 
             {activeTab === 'login' && (
-              <div className="forgot-link"><a href="#">Forgot Password?</a></div>
+              <div className="forgot-link">
+                <a href="#" onClick={handleForgotPassword}>Forgot Password?</a>
+              </div>
             )}
 
             {/* City (signup only) */}

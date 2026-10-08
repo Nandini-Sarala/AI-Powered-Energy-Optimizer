@@ -117,3 +117,65 @@ def update_profile():
     token = create_access_token(identity=str(user["_id"]),
                                 expires_delta=timedelta(days=7))
     return jsonify(_user_response(user, token)), 200
+
+# ── POST /api/auth/reset-password-demo ───────────────────────────────────────────
+@auth_bp.route("/reset-password-demo", methods=["POST"])
+def reset_password_demo():
+    data = request.get_json()
+    email = (data.get("email") or "").strip().lower()
+    
+    if not email:
+        return jsonify({"message": "Email is required"}), 400
+        
+    db = current_app.config["DB"]
+    user = db.users.find_one({"email": email})
+    
+    if not user:
+        return jsonify({"message": "No account found with this email"}), 404
+        
+    import random
+    import string
+    
+    # Generate a random password for the demo
+    temp_password = "demo" + "".join(random.choices(string.digits, k=4))
+    hashed = bcrypt.hashpw(temp_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    
+    db.users.update_one(
+        {"email": email},
+        {"$set": {"password": hashed}}
+    )
+    
+    # Send Email via SMTP
+    import smtplib
+    import os
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    
+    sender_email = os.getenv("SMTP_EMAIL")
+    sender_password = os.getenv("SMTP_PASSWORD")
+    
+    if sender_email and sender_password:
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = sender_email
+            msg['To'] = email
+            msg['Subject'] = "Password Reset - AI Energy Optimizer"
+            
+            body = f"Hello {user.get('name', 'User')},\n\nYour password has been successfully reset.\n\nYour new temporary password is: {temp_password}\n\nPlease log in and change your password as soon as possible.\n\nBest,\nAI Energy Optimizer Team"
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Connect to Gmail SMTP server
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.starttls()
+            server.login(sender_email, sender_password)
+            text = msg.as_string()
+            server.sendmail(sender_email, email, text)
+            server.quit()
+        except Exception as e:
+            print(f"Failed to send email: {e}")
+    else:
+        print(f"SMTP Credentials not set. Temp password is: {temp_password}")
+        
+    return jsonify({
+        "message": "Password reset successful. Check your email."
+    }), 200

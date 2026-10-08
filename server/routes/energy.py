@@ -140,6 +140,10 @@ def get_energy_points():
     }))
     this_year_units = sum(float(l.get("unitsConsumed", 0)) for l in logs)
 
+    # ── Fetch user to check email ─────────────────────────────────────────────
+    user = db.users.find_one({"_id": ObjectId(g.user_id)})
+    user_email = user.get("email", "") if user else ""
+
     # ── Read previous year's value from CSV ───────────────────────────────────
     csv_path = os.path.join(_script_dir, "..", "ml", "dataset", "monthly_units_consumed.csv")
     prev_year        = comp_year - 1      # 2025
@@ -167,6 +171,10 @@ def get_energy_points():
                     continue
     except Exception as e:
         return jsonify({"message": f"Could not read CSV: {e}"}), 500
+
+    # ── Restrict CSV data to test account only ───────────────────────────────────
+    if user_email != "test@gmail.com":
+        prev_year_units = None
 
     # ── Calculate points ───────────────────────────────────────────────────────
     if prev_year_units is None:
@@ -284,7 +292,7 @@ def get_dashboard():
         user_email = user.get("email", "")
         py_total_units = 0.0
         
-        if user_email == "kanishkagurav9@gmail.com":
+        if user_email == "test@gmail.com":
             import csv
             import os
             csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ml", "dataset", "monthly_units_consumed.csv")

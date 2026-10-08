@@ -56,6 +56,8 @@ AI-Powered-Energy-Optimizer/
 5. **Dashboard Analytics & Calendar Billing**: Real-time energy prediction, precise calendar-month billing logic, and dynamic charts (Recharts).
 6. **AI EnergyBot (RAG Chatbot)**: A localized AI assistant powered by Groq (Qwen/LLaMa) and ChromaDB. It understands your specific tariff/appliance data and safely falls back to live DuckDuckGo web scraping if local documents are missing.
 7. **Persistent Reward Wallet**: Users earn reward points directly based on actual energy savings compared to historical CSV datasets, which are securely persisted in MongoDB.
+8. **Automated Password Recovery**: Secure SMTP-based "Forgot Password" flow using Python `smtplib` and MIME to instantly email randomized temporary passwords.
+9. **Cloud-Ready**: Comes with `start.sh`, `gunicorn`, and clear configurations for instant deployment to Render, Vercel, and MongoDB Atlas.
 
 ---
 
@@ -65,8 +67,9 @@ AI-Powered-Energy-Optimizer/
 1. **Groq API**: Get a free API key from [Groq Cloud](https://console.groq.com/keys) to run the AI chatbot.
 2. **OpenWeatherMap**: Get a free API key from [OpenWeatherMap](https://openweathermap.org/api).
 3. **MongoDB**: Have a local MongoDB running (`mongodb://localhost:27017`) OR a cloud Atlas cluster.
-4. Paste these credentials into both `.env` files:
-   - `server/.env` → `OPENWEATHER_API_KEY`, `MONGO_URI`, and `GROQ_API_KEY`
+4. **Gmail SMTP (Optional)**: For the "Forgot Password" feature, generate a 16-letter App Password in your Google Account security settings.
+5. Paste these credentials into both `.env` files:
+   - `server/.env` → `OPENWEATHER_API_KEY`, `MONGO_URI`, `GROQ_API_KEY`, `SMTP_EMAIL`, and `SMTP_PASSWORD`
    - `client/.env` → `VITE_OPENWEATHER_API_KEY`
 
 ### Step 2 — Start Backend (Python/Flask)
