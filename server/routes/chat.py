@@ -163,27 +163,54 @@ def handle_chat():
             print("[DEBUG] No web results found or scraping failed.")
         print("[DEBUG] -----------------------------\n")
 
-        # ── RAG Retrieval ────────────────────────────────────────────────────
+        # ── Cloud RAG Retrieval (Atlas Vector Search) ────────────────────────
         retrieved_context = ""
-        if _embedding_model and _collection:
+        hf_token = os.getenv("HF_TOKEN")
+        
+        if hf_token:
+            hf_url = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
+            hf_headers = {"Authorization": f"Bearer {hf_token}"}
             try:
-                query_embedding = _embedding_model.encode([message]).tolist()
-                results = _collection.query(
-                    query_embeddings=query_embedding,
-                    n_results=10
-                )
-                if results['documents'] and results['documents'][0]:
-                    retrieved_context = "\n".join(results['documents'][0])
-                
-                print("\n[DEBUG] --- RAG RETRIEVAL ---")
-                print(f"[DEBUG] User Query: {message}")
-                print(f"[DEBUG] Retrieved Document Names: {results['metadatas'][0]}")
-                if 'distances' in results and results['distances']:
-                    print(f"[DEBUG] Similarity Scores (distances): {results['distances'][0]}")
-                print(f"[DEBUG] Retrieved Text Chunks: {results['documents'][0]}")
-                print("[DEBUG] -----------------------------\n")
+                hf_res = requests.post(hf_url, headers=hf_headers, json={"inputs": [message]}, timeout=10)
+                if hf_res.status_code == 200:
+                    query_vector = hf_res.json()
+                    # Handle if API returns nested array
+                    if isinstance(query_vector, list) and len(query_vector) > 0 and isinstance(query_vector[0], list):
+                        query_vector = query_vector[0]
+                        
+                    pipeline = [
+                        {
+                            "$vectorSearch": {
+                                "index": "vector_index",
+                                "path": "embedding",
+                                "queryVector": query_vector,
+                                "numCandidates": 20,
+                                "limit": 3
+                            }
+                        },
+                        {
+                            "$project": {
+                                "text": 1,
+                                "score": { "$meta": "vectorSearchScore" }
+                            }
+                        }
+                    ]
+                    
+                    results = list(db.energy_rules.aggregate(pipeline))
+                    if results:
+                        retrieved_context = "\n".join([r["text"] for r in results])
+                        print("\n[DEBUG] --- CLOUD RAG RETRIEVAL ---")
+                        for r in results:
+                            print(f"Score: {r['score']:.4f} | Text: {r['text'][:50]}...")
+                        print("[DEBUG] -----------------------------\n")
+                elif hf_res.status_code == 503:
+                    print("[WARN] HuggingFace model is cold booting...")
+                else:
+                    print(f"[WARN] HuggingFace Error: {hf_res.text}")
             except Exception as e:
-                print(f"RAG Retrieval Error: {e}")
+                print(f"Cloud RAG Retrieval Error: {e}")
+        else:
+            print("[WARN] HF_TOKEN not set, skipping Cloud RAG.")
 
         if scraped_text or retrieved_context:
             system_prompt += "\n\nOFFICIAL KNOWLEDGE BASE:\n"

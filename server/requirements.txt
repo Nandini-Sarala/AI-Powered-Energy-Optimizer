@@ -10,8 +10,6 @@ scikit-learn
 joblib==1.4.2
 python-dotenv==1.0.1
 groq
-chromadb
-sentence-transformers
 duckduckgo_search
 beautifulsoup4
 pypdf
