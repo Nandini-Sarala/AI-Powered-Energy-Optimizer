@@ -89,7 +89,8 @@ const Appliances = () => {
 
   // ── Real-Time Sync (SSE) ────────────────────
   useEffect(() => {
-    const sse = new EventSource('http://localhost:5000/api/stream/events');
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+    const sse = new EventSource(`${API_BASE}/stream/events`);
     sse.addEventListener('update', (e) => {
       fetchAppliances(); // Refresh data instantly when server pushes update!
     });
