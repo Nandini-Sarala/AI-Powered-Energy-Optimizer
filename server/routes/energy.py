@@ -666,13 +666,45 @@ def init_simulation(app):
 
                         # Accumulate kWh in real-time
                         delta_kwh = (power * active_count * (elapsed_sec / 3600.0)) / 1000.0
-                        db.appliances.update_one(
-                            {"_id": app_id},
-                            {
-                                "$inc": {"accumulatedKwhToday": delta_kwh},
-                                "$set": {"lastActiveAt": now.isoformat()}
-                            }
-                        )
+                        new_accumulated = app_doc.get("accumulatedKwhToday", 0) + delta_kwh
+                        daily_limit = app_doc.get("dailyLimitKwh")
+                        
+                        # ── NEW AI FEATURE: Daily Budget Lock ─────────────────────────
+                        if daily_limit and new_accumulated >= daily_limit:
+                            # Force OFF and Lock
+                            db.appliances.update_one(
+                                {"_id": app_id},
+                                {
+                                    "$set": {
+                                        "accumulatedKwhToday": new_accumulated,
+                                        "lastActiveAt": now.isoformat(),
+                                        "status": False,
+                                        "active": 0,
+                                        "turnedOnAt": None,
+                                        "lockedBySystem": True,
+                                        "lockReason": f"AI Budget Guard: Daily limit of {round(daily_limit, 2)} kWh reached.",
+                                        "lockDate": today_str
+                                    }
+                                }
+                            )
+                            db.notifications.insert_one({
+                                "userId": user_id,
+                                "title": "\U0001f512 AI Budget Guard Activated",
+                                "message": f"Your {app_doc['name']} has reached its AI-calculated daily budget of {round(daily_limit, 2)} kWh. It has been locked to keep your monthly bill under last year's target.",
+                                "type": "warning",
+                                "read": False,
+                                "createdAt": now.isoformat()
+                            })
+                            notify_clients("update", {"type": "budget_lock", "app_id": str(app_id)})
+                        else:
+                            # Normal real-time energy accumulation
+                            db.appliances.update_one(
+                                {"_id": app_id},
+                                {
+                                    "$inc": {"accumulatedKwhToday": delta_kwh},
+                                    "$set": {"lastActiveAt": now.isoformat()}
+                                }
+                            )
                         
                         # 2. Update today's energy log with breakdown
                         today_str = str(date.today())
@@ -749,12 +781,6 @@ def init_simulation(app):
 
                             # Shed highest-wattage appliance of this priority first
                             target = max(candidates, key=lambda a: a["power"] * a.get("active", 1))
-                            lock_reason = (
-                                f"Overload: total load was {round(load_pct)}% of your "
-                                f"{int(sanctioned_w)}W sanctioned limit. "
-                                f"'{target['name']}' ({target['priority']} priority) was shut off "
-                                f"to protect your connection."
-                            )
                             db.appliances.update_one(
                                 {"_id": target["_id"]},
                                 {
@@ -762,10 +788,7 @@ def init_simulation(app):
                                         "status":         False,
                                         "active":         0,
                                         "turnedOnAt":     None,
-                                        "lastActiveAt":   None,
-                                        "lockedBySystem": True,
-                                        "lockReason":     lock_reason,
-                                        "lockDate":       today_str
+                                        "lastActiveAt":   None
                                     }
                                 }
                             )
@@ -774,8 +797,8 @@ def init_simulation(app):
                                 "title":     "\U0001f6a8 Overload \u2014 Auto-Off Activated",
                                 "message":   (
                                     f"Load reached {round(load_pct)}% of your {int(sanctioned_w)}W limit. "
-                                    f"'{target['name']}' ({target['priority']} priority) was automatically "
-                                    f"turned off. Lock resets tomorrow or override in the Appliances page."
+                                    f"'{target['name']}' ({target['priority']} priority) was safely "
+                                    f"turned off. We recommend waiting for other high-load appliances to finish before turning it back on."
                                 ),
                                 "type":      "overload",
                                 "read":      False,
@@ -799,6 +822,38 @@ def init_simulation(app):
                                 "read":      False,
                                 "createdAt": now.isoformat()
                             })
+
+                    # ── STEP 3: Offline Device Watchdog (Heartbeat check) ───────────
+                    # Any appliance that is ON but hasn't sent a heartbeat in 60s is considered offline (power cut).
+                    for app_doc in active_apps:
+                        last_seen_str = app_doc.get("lastSeenAt")
+                        if not last_seen_str:
+                            continue # Devices without heartbeat feature skip this check
+                        
+                        last_seen = datetime.fromisoformat(last_seen_str)
+                        if (now - last_seen).total_seconds() > 60:
+                            uid = app_doc["userId"]
+                            db.appliances.update_one(
+                                {"_id": app_doc["_id"]},
+                                {
+                                    "$set": {
+                                        "status": False,
+                                        "active": 0,
+                                        "turnedOnAt": None,
+                                        "lastActiveAt": None
+                                    }
+                                }
+                            )
+                            db.notifications.insert_one({
+                                "userId": uid,
+                                "title": "🔌 Device Offline (Power Cut)",
+                                "message": f"We lost connection to '{app_doc['name']}'. It has been marked OFF to stop billing.",
+                                "type": "warning",
+                                "read": False,
+                                "createdAt": now.isoformat()
+                            })
+                            notify_clients("update", {"type": "offline_cut", "app_id": str(app_doc["_id"])})
+
 
                 except Exception as e:
                     print(f"[WARN] Simulation error: {e}")

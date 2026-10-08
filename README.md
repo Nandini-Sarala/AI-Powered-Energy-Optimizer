@@ -45,13 +45,17 @@ AI-Powered-Energy-Optimizer/
 
 ---
 
-## 🚀 Key Features Built
+## 🚀 Key Features & Edge-Cases Solved
 
-1. **Dashboard Analytics & Calendar Billing**: Real-time energy prediction, precise calendar-month billing logic, and dynamic charts (Recharts).
-2. **AI EnergyBot (RAG Chatbot)**: A localized AI assistant powered by Groq (Qwen/LLaMa) and ChromaDB. It understands your specific tariff/appliance data and safely falls back to live DuckDuckGo web scraping if local documents are missing.
-3. **Persistent Reward Wallet**: Users earn reward points directly based on actual energy savings compared to historical CSV datasets, which are securely persisted in MongoDB.
-4. **AI Aggressive Load Shedding**: When sanctioned load is exceeded, the system automatically checks priorities (Non-essential -> Medium -> Essential) and intelligently shuts down appliances to protect the grid.
-5. **Physical Hardware Integration (ESP32)**: Built-in support for Wokwi ESP32 Simulation. Allows real-time HTTP polling and interaction between physical switches and the React dashboard via a local tunnel.
+1. **AI Budget Guard (Predictive Bill Balancing)**: A machine learning script (`ai_budget_calculator.py`) analyzes historical `monthly_units_consumed.csv` datasets to calculate a strict daily house budget. It intelligently distributes this budget using priority multipliers (Medium gets 2x shares vs Non-essential). It also features a compassionate "Minimum Grace Allowance" (min 1.0 kWh) to ensure the house is never paralyzed, even if the math budget is negative.
+2. **Real-Time Budget Enforcer**: The core simulation loop tracks accumulated kWh every second. The exact moment an appliance hits its AI-assigned limit, it is forced OFF and safely locked (`lockedBySystem = True`) with a dashboard alert to protect the user's monthly budget.
+3. **Smart Virtual Breaker (Grid Overload)**: When the sanctioned load is exceeded (>90%), the system checks priorities (Non-essential -> Medium) and intelligently shuts down appliances to protect the grid. Instead of locking them, it sends a "Smart Recommendation" to the user to wait before turning them back on.
+4. **Hardware Resilience (Edge-Cases Solved)**: 
+   - **Total Power Cut (Watchdog)**: A real-time heartbeat ping detects massive grid failures (30s+ timeout) and instantly blacks out the React dashboard.
+   - **Wi-Fi Disconnects (Offline Caching)**: If the router dies but electricity remains, the ESP32 physical simulator caches local hardware button presses. When Wi-Fi is restored, it bulk-syncs all offline events to the cloud database.
+5. **Dashboard Analytics & Calendar Billing**: Real-time energy prediction, precise calendar-month billing logic, and dynamic charts (Recharts).
+6. **AI EnergyBot (RAG Chatbot)**: A localized AI assistant powered by Groq (Qwen/LLaMa) and ChromaDB. It understands your specific tariff/appliance data and safely falls back to live DuckDuckGo web scraping if local documents are missing.
+7. **Persistent Reward Wallet**: Users earn reward points directly based on actual energy savings compared to historical CSV datasets, which are securely persisted in MongoDB.
 
 ---
 

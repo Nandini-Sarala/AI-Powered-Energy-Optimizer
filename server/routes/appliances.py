@@ -111,6 +111,7 @@ def update_appliance(app_id):
             }), 409
 
         update_fields["status"] = new_status
+        update_fields["lastToggledAt"] = datetime.now().isoformat()
 
         if new_status and not old_status:
             now_iso = datetime.now().isoformat()
@@ -189,7 +190,7 @@ def physical_toggle(app_id):
 
     # Toggle status
     new_status = not app_doc.get("status", False)
-    update_fields = {"status": new_status, "active": 1 if new_status else 0}
+    update_fields = {"status": new_status, "active": 1 if new_status else 0, "lastToggledAt": datetime.now().isoformat()}
     
     if new_status:
         now_iso = datetime.now().isoformat()
@@ -205,3 +206,61 @@ def physical_toggle(app_id):
     notify_clients("update", {"type": "physical_toggle", "app_id": str(app_id)})
     
     return jsonify(_serialize(updated)), 200
+
+# ── POST /api/appliances/<id>/heartbeat ───────────────────────────────────────
+@appliances_bp.route("/<app_id>/heartbeat", methods=["POST"])
+@protect
+def heartbeat(app_id):
+    db = current_app.config["DB"]
+    db.appliances.update_one(
+        {"_id": ObjectId(app_id), "userId": ObjectId(g.user_id)},
+        {"$set": {"lastSeenAt": datetime.now().isoformat()}}
+    )
+    return jsonify({"message": "Heartbeat received"}), 200
+
+# ── POST /api/appliances/<id>/offline-sync ────────────────────────────────────
+@appliances_bp.route("/<app_id>/offline-sync", methods=["POST"])
+@protect
+def offline_sync(app_id):
+    data = request.get_json() or {}
+    toggle_time_str = data.get("toggleTime")
+    final_state = data.get("finalState", False)
+    
+    db = current_app.config["DB"]
+    app_doc = db.appliances.find_one({"_id": ObjectId(app_id), "userId": ObjectId(g.user_id)})
+    if not app_doc:
+        return jsonify({"message": "Not found"}), 404
+        
+    last_db_active_str = app_doc.get("lastToggledAt")
+    
+    # ── 1. Resolve Timestamp Race Condition ──
+    # If the user toggled the virtual dashboard *after* the hardware went offline, the virtual board wins!
+    if last_db_active_str and toggle_time_str:
+        if last_db_active_str > toggle_time_str:
+            final_state = app_doc.get("status", False)
+            
+    # ── 2. Log Notification ──
+    db.notifications.insert_one({
+        "userId": ObjectId(g.user_id),
+        "title": "🔄 Offline Sync Complete",
+        "message": f"'{app_doc['name']}' reconnected! Final state synced to {'ON' if final_state else 'OFF'}.",
+        "type": "success",
+        "read": False,
+        "createdAt": datetime.now().isoformat()
+    })
+    
+    from routes.stream import notify_clients
+    notify_clients("update", {"type": "offline_sync_complete", "app_id": str(app_id)})
+        
+    # ── 3. Set final state ──
+    update_fields = {"status": bool(final_state), "active": 1 if final_state else 0, "lastToggledAt": datetime.now().isoformat()}
+    if final_state:
+        update_fields["turnedOnAt"] = datetime.now().isoformat()
+        update_fields["lastActiveAt"] = datetime.now().isoformat()
+    else:
+        update_fields["turnedOnAt"] = None
+        update_fields["lastActiveAt"] = None
+        
+    db.appliances.update_one({"_id": ObjectId(app_id)}, {"$set": update_fields})
+        
+    return jsonify({"message": "Sync complete"}), 200
