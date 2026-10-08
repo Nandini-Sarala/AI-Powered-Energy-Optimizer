@@ -4,8 +4,6 @@ from groq import Groq
 from bson import ObjectId
 from datetime import date, datetime
 from routes.middleware import protect
-import chromadb
-from sentence_transformers import SentenceTransformer
 import requests
 from bs4 import BeautifulSoup
 from duckduckgo_search import DDGS
@@ -51,18 +49,7 @@ def scrape_official_info(query):
         print(f"[WARN] Scraping failed: {e}")
         return None, None
 
-# ── Initialize RAG models globally ──────────────────────────────────────────
-try:
-    print("[INFO] Loading RAG resources for chatbot...")
-    _db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "chroma_db")
-    _chroma_client = chromadb.PersistentClient(path=_db_path)
-    _collection = _chroma_client.get_collection(name="energy_rules")
-    _embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-    print("[OK] RAG resources loaded successfully.")
-except Exception as e:
-    print(f"[WARN] Failed to load RAG resources: {e}")
-    _embedding_model = None
-    _collection = None
+
 
 chat_bp = Blueprint("chat", __name__)
 
