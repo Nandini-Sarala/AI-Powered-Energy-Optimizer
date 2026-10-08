@@ -28,10 +28,8 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# ── CORS: Allow any localhost origin (React on 5173, 5174, etc.) ───────────────
-CORS(app, origins=["http://localhost:5173", "http://localhost:5174",
-                   "http://localhost:5175", "http://localhost:3000"],
-     supports_credentials=True)
+# ── CORS: Allow all origins so Vercel can connect ───────────────
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # ── JWT Configuration ──────────────────────────────────────────────────────────
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET", "energy_ai_secret_key_2024")

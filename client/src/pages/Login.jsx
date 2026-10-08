@@ -53,7 +53,7 @@ const LoginPage = () => {
     } catch (err) {
       // No response = network error = backend server is not running
       if (!err.response) {
-        setError('⚠️ Cannot connect to server. Make sure the backend is running: open a terminal in the server/ folder and run "npm start"');
+        setError('⚠️ Cannot connect to server. Make sure the backend on Render is running and VITE_API_BASE_URL is correct.');
       } else {
         // Server responded with an error (wrong password, email not found, etc.)
         setError(err.response?.data?.message || 'Something went wrong. Please try again.');
