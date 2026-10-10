@@ -30,4 +30,11 @@ def events():
             if q in listeners:
                 listeners.remove(q)
 
-    return Response(stream(), mimetype="text/event-stream")
+    response = Response(stream(), mimetype="text/event-stream")
+    # Flask-CORS does not inject headers into streaming responses,
+    # so we add them manually to allow the Vercel frontend to connect.
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    response.headers["Cache-Control"] = "no-cache"
+    response.headers["X-Accel-Buffering"] = "no"  # Disables Nginx buffering on Render
+    return response

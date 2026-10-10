@@ -249,9 +249,6 @@ def offline_sync(app_id):
         "createdAt": datetime.now().isoformat()
     })
     
-    from routes.stream import notify_clients
-    notify_clients("update", {"type": "offline_sync_complete", "app_id": str(app_id)})
-        
     # ── 3. Set final state ──
     update_fields = {"status": bool(final_state), "active": 1 if final_state else 0, "lastToggledAt": datetime.now().isoformat()}
     if final_state:
@@ -262,5 +259,8 @@ def offline_sync(app_id):
         update_fields["lastActiveAt"] = None
         
     db.appliances.update_one({"_id": ObjectId(app_id)}, {"$set": update_fields})
+        
+    from routes.stream import notify_clients
+    notify_clients("update", {"type": "offline_sync_complete", "app_id": str(app_id)})
         
     return jsonify({"message": "Sync complete"}), 200
