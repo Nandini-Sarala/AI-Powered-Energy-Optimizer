@@ -14,4 +14,3 @@ duckduckgo_search
 beautifulsoup4
 pypdf
 gunicorn
-gevent
