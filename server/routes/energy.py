@@ -750,33 +750,33 @@ def init_simulation(app):
                                 elapsed_real_min = (now - turned_on).total_seconds() / 60.0
 
                                 if elapsed_real_min >= timer_mins:
-                                # Clean shutdown — no lockedBySystem
-                                db.appliances.update_one(
-                                    {"_id": app_id},
-                                    {
-                                        "$set": {
-                                            "status":       False,
-                                            "active":       0,
-                                            "turnedOnAt":   None,
-                                            "lastActiveAt": None
+                                    # Clean shutdown — no lockedBySystem
+                                    db.appliances.update_one(
+                                        {"_id": app_id},
+                                        {
+                                            "$set": {
+                                                "status":       False,
+                                                "active":       0,
+                                                "turnedOnAt":   None,
+                                                "lastActiveAt": None
+                                            }
                                         }
-                                    }
-                                )
-                                used_kwh  = round((power * active_count * (timer_mins / 60.0)) / 1000.0, 3)
-                                used_cost = round(used_kwh * TARIFF_RATE_RS, 2)
-                                db.notifications.insert_one({
-                                    "userId":    user_id,
-                                    "title":     f"\u23f1\ufe0f Timer Expired: {app_doc['name']}",
-                                    "message":   (
-                                        f"Your {app_doc['name']} timer of {timer_mins} min(s) has expired "
-                                        f"and was turned off normally. "
-                                        f"Energy used: {used_kwh} kWh (\u20b9{used_cost})."
-                                    ),
-                                    "type":      "timer",
-                                    "read":      False,
-                                    "createdAt": now.isoformat()
-                                })
-                                notify_clients("update", {"type": "timer_expiry", "app_id": str(app_id)})
+                                    )
+                                    used_kwh  = round((power * active_count * (timer_mins / 60.0)) / 1000.0, 3)
+                                    used_cost = round(used_kwh * TARIFF_RATE_RS, 2)
+                                    db.notifications.insert_one({
+                                        "userId":    user_id,
+                                        "title":     f"\u23f1\ufe0f Timer Expired: {app_doc['name']}",
+                                        "message":   (
+                                            f"Your {app_doc['name']} timer of {timer_mins} min(s) has expired "
+                                            f"and was turned off normally. "
+                                            f"Energy used: {used_kwh} kWh (\u20b9{used_cost})."
+                                        ),
+                                        "type":      "timer",
+                                        "read":      False,
+                                        "createdAt": now.isoformat()
+                                    })
+                                    notify_clients("update", {"type": "timer_expiry", "app_id": str(app_id)})
 
                     # ── STEP 2: Overload check — priority cascade ───────────────────────
                     # Re-fetch after timer shutoffs
