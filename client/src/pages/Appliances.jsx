@@ -87,14 +87,35 @@ const Appliances = () => {
     fetchAppliances();
   }, []);
 
-  // ── Real-Time Sync (SSE) ────────────────────
+  // ── Real-Time Sync (SSE + Polling Fallback) ────────────────────
   useEffect(() => {
     const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-    const sse = new EventSource(`${API_BASE}/stream/events`);
-    sse.addEventListener('update', (e) => {
-      fetchAppliances(); // Refresh data instantly when server pushes update!
-    });
-    return () => sse.close();
+
+    // Primary: SSE for instant updates from physical_simulator
+    let sse = null;
+    let sseWorking = false;
+
+    const connectSSE = () => {
+      sse = new EventSource(`${API_BASE}/stream/events`);
+      sse.addEventListener('update', () => {
+        sseWorking = true;
+        fetchAppliances();
+      });
+      sse.onerror = () => {
+        sseWorking = false; // Mark SSE as down; polling fallback takes over
+      };
+    };
+    connectSSE();
+
+    // Fallback: poll every 10s in case SSE is down or misses an event
+    const poll = setInterval(() => {
+      if (!sseWorking) fetchAppliances();
+    }, 10000);
+
+    return () => {
+      sse?.close();
+      clearInterval(poll);
+    };
   }, []);
 
 

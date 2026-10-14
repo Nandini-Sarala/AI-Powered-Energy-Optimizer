@@ -839,7 +839,7 @@ def init_simulation(app):
                             continue # Devices without heartbeat feature skip this check
                         
                         last_seen = datetime.fromisoformat(last_seen_str)
-                        if (now - last_seen).total_seconds() > 60:
+                        if (now - last_seen).total_seconds() > 90:
                             uid = app_doc["userId"]
                             db.appliances.update_one(
                                 {"_id": app_doc["_id"]},
