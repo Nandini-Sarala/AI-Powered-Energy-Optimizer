@@ -6,10 +6,21 @@ Appliances Routes — Flask Blueprint
   DELETE /api/appliances/<id>     → Delete appliance
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from flask import Blueprint, request, jsonify, current_app, g
 from bson import ObjectId
 from routes.middleware import protect
+
+def parse_iso_utc(iso_str):
+    if not iso_str:
+        return None
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except Exception:
+        return None
 
 appliances_bp = Blueprint("appliances", __name__)
 
@@ -227,7 +238,7 @@ def heartbeat(app_id):
 def offline_sync(app_id):
     data = request.get_json() or {}
     toggle_time_str = data.get("toggleTime")
-    final_state = data.get("finalState", False)
+    final_state = bool(data.get("finalState", False))
     
     db = current_app.config["DB"]
     app_doc = db.appliances.find_one({"_id": ObjectId(app_id), "userId": ObjectId(g.user_id)})
@@ -235,26 +246,79 @@ def offline_sync(app_id):
         return jsonify({"message": "Not found"}), 404
         
     last_db_active_str = app_doc.get("lastToggledAt")
+    previous_status = app_doc.get("status", False)
     
     # ── 1. Resolve Timestamp Race Condition ──
     # If the user toggled the virtual dashboard *after* the hardware went offline, the virtual board wins!
     if last_db_active_str and toggle_time_str:
         if last_db_active_str > toggle_time_str:
-            final_state = app_doc.get("status", False)
+            final_state = previous_status
             
-    now_utc = datetime.now(timezone.utc).isoformat()
-    # ── 2. Log Notification ──
+    now_dt = datetime.now(timezone.utc)
+    now_utc = now_dt.isoformat()
+    today_str = str(date.today())
+    TARIFF_RATE_RS = 5.80
+
+    # ── 2. False Data & Billing Correction ──
+    correction_msg = ""
+    toggle_dt = parse_iso_utc(toggle_time_str)
+    current_accum = float(app_doc.get("accumulatedKwhToday", 0.0))
+    power = float(app_doc.get("power", 0))
+    active_count = int(app_doc.get("active", 1) or 1)
+
+    if toggle_dt and previous_status != final_state:
+        elapsed_sec = (now_dt - toggle_dt).total_seconds()
+        if 0 < elapsed_sec < 86400:  # Only reconcile if toggled within the last 24h
+            delta_kwh = round((power * active_count * (elapsed_sec / 3600.0)) / 1000.0, 4)
+            delta_rs = round(delta_kwh * TARIFF_RATE_RS, 2)
+            today_log = db.energylogs.find_one({"userId": ObjectId(g.user_id), "date": today_str})
+
+            if previous_status and not final_state:
+                # Appliance was turned OFF offline, but server ran it: REFUND phantom kWh
+                current_accum = max(0.0, current_accum - delta_kwh)
+                if today_log:
+                    new_units = max(0.0, float(today_log.get("unitsConsumed", 0.0)) - delta_kwh)
+                    cur_bd = float((today_log.get("breakdown") or {}).get(app_doc['name'], 0.0))
+                    new_bd = max(0.0, cur_bd - delta_kwh)
+                    db.energylogs.update_one(
+                        {"_id": today_log["_id"]},
+                        {"$set": {"unitsConsumed": round(new_units, 4), f"breakdown.{app_doc['name']}": round(new_bd, 4)}}
+                    )
+                correction_msg = f" Refunded {round(delta_kwh, 3)} kWh (~₹{delta_rs}) billed while Wi-Fi was down."
+
+            elif not previous_status and final_state:
+                # Appliance was turned ON offline, but server had it off: BACKFILL true kWh
+                current_accum = current_accum + delta_kwh
+                db.energylogs.update_one(
+                    {"userId": ObjectId(g.user_id), "date": today_str},
+                    {
+                        "$inc": {
+                            "unitsConsumed": delta_kwh,
+                            f"breakdown.{app_doc['name']}": delta_kwh
+                        },
+                        "$setOnInsert": {"costPerUnit": TARIFF_RATE_RS}
+                    },
+                    upsert=True
+                )
+                correction_msg = f" Backfilled {round(delta_kwh, 3)} kWh (~₹{delta_rs}) consumed while Wi-Fi was down."
+
+    # ── 3. Log Notification ──
     db.notifications.insert_one({
         "userId": ObjectId(g.user_id),
         "title": "🔄 Offline Sync Complete",
-        "message": f"'{app_doc['name']}' reconnected! Final state synced to {'ON' if final_state else 'OFF'}.",
+        "message": f"'{app_doc['name']}' reconnected! Final state synced to {'ON' if final_state else 'OFF'}.{correction_msg}",
         "type": "success",
         "read": False,
         "createdAt": now_utc
     })
     
-    # ── 3. Set final state ──
-    update_fields = {"status": bool(final_state), "active": 1 if final_state else 0, "lastToggledAt": now_utc}
+    # ── 4. Set final state ──
+    update_fields = {
+        "status": bool(final_state),
+        "active": 1 if final_state else 0,
+        "lastToggledAt": now_utc,
+        "accumulatedKwhToday": round(current_accum, 4)
+    }
     if final_state:
         update_fields["turnedOnAt"] = now_utc
         update_fields["lastActiveAt"] = now_utc

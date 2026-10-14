@@ -860,6 +860,26 @@ def init_simulation(app):
                         diff_sec = (now - last_seen).total_seconds()
                         if 90 < diff_sec < 900:
                             uid = app_doc["userId"]
+                            power = float(app_doc.get("power", 0))
+                            active_count = int(app_doc.get("active", 1) or 1)
+                            
+                            # Calculate phantom energy accumulated during the 90s grace window
+                            phantom_kwh = round((power * active_count * (diff_sec / 3600.0)) / 1000.0, 4)
+                            refund_rs = round(phantom_kwh * TARIFF_RATE_RS, 2)
+                            
+                            current_accum = float(app_doc.get("accumulatedKwhToday", 0.0))
+                            new_accum = max(0.0, current_accum - phantom_kwh)
+                            
+                            today_log = db.energylogs.find_one({"userId": uid, "date": today_str})
+                            if today_log and phantom_kwh > 0:
+                                new_units = max(0.0, float(today_log.get("unitsConsumed", 0.0)) - phantom_kwh)
+                                cur_bd = float((today_log.get("breakdown") or {}).get(app_doc['name'], 0.0))
+                                new_bd = max(0.0, cur_bd - phantom_kwh)
+                                db.energylogs.update_one(
+                                    {"_id": today_log["_id"]},
+                                    {"$set": {"unitsConsumed": round(new_units, 4), f"breakdown.{app_doc['name']}": round(new_bd, 4)}}
+                                )
+
                             db.appliances.update_one(
                                 {"_id": app_doc["_id"]},
                                 {
@@ -867,14 +887,16 @@ def init_simulation(app):
                                         "status": False,
                                         "active": 0,
                                         "turnedOnAt": None,
-                                        "lastActiveAt": None
+                                        "lastActiveAt": None,
+                                        "accumulatedKwhToday": round(new_accum, 4)
                                     }
                                 }
                             )
+                            refund_text = f" Refunded {round(phantom_kwh, 3)} kWh (~₹{refund_rs}) phantom energy." if phantom_kwh > 0 else ""
                             db.notifications.insert_one({
                                 "userId": uid,
                                 "title": "🔌 Device Offline (Power Cut)",
-                                "message": f"We lost connection to '{app_doc['name']}'. It has been marked OFF to stop billing.",
+                                "message": f"We lost connection to '{app_doc['name']}'. Marked OFF to stop billing.{refund_text}",
                                 "type": "warning",
                                 "read": False,
                                 "createdAt": now.isoformat()
