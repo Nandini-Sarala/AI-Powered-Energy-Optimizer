@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 
 # Use local sentence-transformers since your local PC has enough RAM!
+import certifi
 from sentence_transformers import SentenceTransformer
 
 load_dotenv()
@@ -14,7 +15,7 @@ def main():
     model = SentenceTransformer('all-MiniLM-L6-v2')
 
     print("Connecting to MongoDB Atlas...")
-    client = MongoClient(MONGO_URI)
+    client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
     db = client["energy_optimizer"]
     collection = db["energy_rules"]
     

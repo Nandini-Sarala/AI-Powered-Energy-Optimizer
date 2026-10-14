@@ -36,10 +36,12 @@ app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET", "energy_ai_secret_key_202
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = False   # tokens last 7 days effectively
 jwt = JWTManager(app)
 
+import certifi
+
 # ── MongoDB Connection ─────────────────────────────────────────────────────────
 MONGO_URI = os.getenv("MONGO_URI")
 try:
-    client = MongoClient(MONGO_URI)
+    client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
     db = client["energy_optimizer"]
     # Expose db to blueprints via app config
     app.config["DB"] = db
