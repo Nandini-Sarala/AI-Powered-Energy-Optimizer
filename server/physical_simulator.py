@@ -1,12 +1,16 @@
+import os
 import requests
 import time
 import json
 import sys
 import threading
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Change this to match the JWT token of a logged-in user if you added authentication
-BASE_URL = "http://localhost:5000/api"
+BASE_URL = os.getenv("SIM_BASE_URL", "http://localhost:5000/api")
 TOKEN = ""
 
 # --- SCENARIO VARIABLES ---
@@ -18,8 +22,8 @@ def login():
     global TOKEN
     print("Logging into simulator...")
     res = requests.post(f"{BASE_URL}/auth/login", json={
-        "email": "test@gmail.com",
-        "password": "testing"
+        "email": os.getenv("SIM_EMAIL"),
+        "password": os.getenv("SIM_PASSWORD")
     })
     if res.status_code == 200:
         TOKEN = res.json().get("token")
