@@ -196,6 +196,7 @@ def physical_toggle(app_id):
         now_iso = datetime.now().isoformat()
         update_fields["turnedOnAt"] = now_iso
         update_fields["lastActiveAt"] = now_iso
+        update_fields["lastSeenAt"] = now_iso  # ← Stamp heartbeat NOW so watchdog doesn't fire immediately
     else:
         update_fields["turnedOnAt"] = None
         update_fields["lastActiveAt"] = None
