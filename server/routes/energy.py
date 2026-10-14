@@ -12,10 +12,21 @@ import sys
 import joblib
 import pandas as pd
 import requests as http_requests
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from flask import Blueprint, request, jsonify, current_app, g
 from bson import ObjectId
 from routes.middleware import protect
+
+def parse_iso_utc(iso_str):
+    if not iso_str:
+        return None
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except Exception:
+        return None
 
 energy_bp = Blueprint("energy", __name__)
 
@@ -631,7 +642,7 @@ def init_simulation(app):
             while True:
                 time.sleep(5)
                 try:
-                    now       = datetime.now()
+                    now       = datetime.now(timezone.utc)
                     today_str = str(date.today())
 
                     # ── STEP 0: Daily lock reset ────────────────────────────────────────
@@ -667,7 +678,9 @@ def init_simulation(app):
                         if not last_active_str:
                             continue
 
-                        last_active = datetime.fromisoformat(last_active_str)
+                        last_active = parse_iso_utc(last_active_str)
+                        if not last_active:
+                            continue
                         elapsed_sec = (now - last_active).total_seconds()
                         if elapsed_sec <= 0:
                             continue
@@ -732,10 +745,11 @@ def init_simulation(app):
 
                         # ── Timer expiry: normal shutdown, NO lock ─────────────────────
                         if timer_mins and turned_on_str:
-                            turned_on        = datetime.fromisoformat(turned_on_str)
-                            elapsed_real_min = (now - turned_on).total_seconds() / 60.0
+                            turned_on = parse_iso_utc(turned_on_str)
+                            if turned_on:
+                                elapsed_real_min = (now - turned_on).total_seconds() / 60.0
 
-                            if elapsed_real_min >= timer_mins:
+                                if elapsed_real_min >= timer_mins:
                                 # Clean shutdown — no lockedBySystem
                                 db.appliances.update_one(
                                     {"_id": app_id},
@@ -832,14 +846,19 @@ def init_simulation(app):
                             })
 
                     # ── STEP 3: Offline Device Watchdog (Heartbeat check) ───────────
-                    # Any appliance that is ON but hasn't sent a heartbeat in 60s is considered offline (power cut).
+                    # Any appliance that is ON but hasn't sent a heartbeat in 90s is considered offline (power cut).
+                    # Only applies if hardware was recently active (< 15 mins) so normal web usage is never falsely turned off.
                     for app_doc in active_apps:
                         last_seen_str = app_doc.get("lastSeenAt")
                         if not last_seen_str:
                             continue # Devices without heartbeat feature skip this check
                         
-                        last_seen = datetime.fromisoformat(last_seen_str)
-                        if (now - last_seen).total_seconds() > 90:
+                        last_seen = parse_iso_utc(last_seen_str)
+                        if not last_seen:
+                            continue
+                            
+                        diff_sec = (now - last_seen).total_seconds()
+                        if 90 < diff_sec < 900:
                             uid = app_doc["userId"]
                             db.appliances.update_one(
                                 {"_id": app_doc["_id"]},

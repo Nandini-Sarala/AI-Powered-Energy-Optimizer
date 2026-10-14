@@ -4,7 +4,7 @@ import time
 import json
 import sys
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -58,7 +58,7 @@ def toggle_physical_switch(idx):
         print(f"[Hardware] Wi-Fi is DOWN. Physically turned {'ON' if new_state else 'OFF'}.")
         print(f"[Hardware] Event cached. Will sync when Wi-Fi returns.")
         OFFLINE_EVENTS[app_id] = {
-            "toggle_time": datetime.now().isoformat(),
+            "toggle_time": datetime.now(timezone.utc).isoformat(),
             "final_state": new_state
         }
         return

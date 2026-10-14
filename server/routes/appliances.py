@@ -6,7 +6,7 @@ Appliances Routes — Flask Blueprint
   DELETE /api/appliances/<id>     → Delete appliance
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, current_app, g
 from bson import ObjectId
 from routes.middleware import protect
@@ -48,7 +48,7 @@ def add_appliance():
     if not name or not power:
         return jsonify({"message": "Name and power are required"}), 400
 
-    now_iso = datetime.now().isoformat() if status else None
+    now_iso = datetime.now(timezone.utc).isoformat() if status else None
 
     db = current_app.config["DB"]
     result = db.appliances.insert_one({
@@ -62,6 +62,7 @@ def add_appliance():
         "timerMinutes":  timer_mins,
         "turnedOnAt":    now_iso,
         "lastActiveAt":  now_iso,
+        "lastSeenAt":    now_iso,
     })
 
     new_doc = db.appliances.find_one({"_id": result.inserted_id})
@@ -110,13 +111,14 @@ def update_appliance(app_id):
                 "message":    "Appliance is locked by system. Send override=true to force enable."
             }), 409
 
+        now_utc = datetime.now(timezone.utc).isoformat()
         update_fields["status"] = new_status
-        update_fields["lastToggledAt"] = datetime.now().isoformat()
+        update_fields["lastToggledAt"] = now_utc
 
         if new_status and not old_status:
-            now_iso = datetime.now().isoformat()
-            update_fields["turnedOnAt"]   = now_iso
-            update_fields["lastActiveAt"] = now_iso
+            update_fields["turnedOnAt"]   = now_utc
+            update_fields["lastActiveAt"] = now_utc
+            update_fields["lastSeenAt"]   = now_utc
 
         elif not new_status:
             update_fields["turnedOnAt"]   = None
@@ -127,9 +129,9 @@ def update_appliance(app_id):
             update_fields["lockedBySystem"] = False
             update_fields["lockReason"]     = None
             update_fields["lockDate"]       = None
-            now_iso = datetime.now().isoformat()
-            update_fields["turnedOnAt"]   = now_iso
-            update_fields["lastActiveAt"] = now_iso
+            update_fields["turnedOnAt"]   = now_utc
+            update_fields["lastActiveAt"] = now_utc
+            update_fields["lastSeenAt"]   = now_utc
 
     result = db.appliances.update_one(
         {"_id": ObjectId(app_id), "userId": ObjectId(g.user_id)},
@@ -176,6 +178,7 @@ def physical_toggle(app_id):
     from routes.stream import notify_clients
 
     # If the system locked it, reject the physical switch!
+    now_utc = datetime.now(timezone.utc).isoformat()
     if app_doc.get("lockedBySystem"):
         db.notifications.insert_one({
             "userId": ObjectId(g.user_id),
@@ -183,20 +186,19 @@ def physical_toggle(app_id):
             "message": f"Someone physically tried to turn on '{app_doc['name']}', but it was blocked because it's locked by the system (Overload).",
             "type": "warning",
             "read": False,
-            "createdAt": datetime.now().isoformat()
+            "createdAt": now_utc
         })
         notify_clients("update", {"type": "physical_blocked", "app_id": str(app_id)})
         return jsonify({"message": "Blocked by system lock"}), 403
 
     # Toggle status
     new_status = not app_doc.get("status", False)
-    update_fields = {"status": new_status, "active": 1 if new_status else 0, "lastToggledAt": datetime.now().isoformat()}
+    update_fields = {"status": new_status, "active": 1 if new_status else 0, "lastToggledAt": now_utc}
     
     if new_status:
-        now_iso = datetime.now().isoformat()
-        update_fields["turnedOnAt"] = now_iso
-        update_fields["lastActiveAt"] = now_iso
-        update_fields["lastSeenAt"] = now_iso  # ← Stamp heartbeat NOW so watchdog doesn't fire immediately
+        update_fields["turnedOnAt"] = now_utc
+        update_fields["lastActiveAt"] = now_utc
+        update_fields["lastSeenAt"] = now_utc  # ← Stamp heartbeat NOW so watchdog doesn't fire immediately
     else:
         update_fields["turnedOnAt"] = None
         update_fields["lastActiveAt"] = None
@@ -215,7 +217,7 @@ def heartbeat(app_id):
     db = current_app.config["DB"]
     db.appliances.update_one(
         {"_id": ObjectId(app_id), "userId": ObjectId(g.user_id)},
-        {"$set": {"lastSeenAt": datetime.now().isoformat()}}
+        {"$set": {"lastSeenAt": datetime.now(timezone.utc).isoformat()}}
     )
     return jsonify({"message": "Heartbeat received"}), 200
 
@@ -240,6 +242,7 @@ def offline_sync(app_id):
         if last_db_active_str > toggle_time_str:
             final_state = app_doc.get("status", False)
             
+    now_utc = datetime.now(timezone.utc).isoformat()
     # ── 2. Log Notification ──
     db.notifications.insert_one({
         "userId": ObjectId(g.user_id),
@@ -247,14 +250,15 @@ def offline_sync(app_id):
         "message": f"'{app_doc['name']}' reconnected! Final state synced to {'ON' if final_state else 'OFF'}.",
         "type": "success",
         "read": False,
-        "createdAt": datetime.now().isoformat()
+        "createdAt": now_utc
     })
     
     # ── 3. Set final state ──
-    update_fields = {"status": bool(final_state), "active": 1 if final_state else 0, "lastToggledAt": datetime.now().isoformat()}
+    update_fields = {"status": bool(final_state), "active": 1 if final_state else 0, "lastToggledAt": now_utc}
     if final_state:
-        update_fields["turnedOnAt"] = datetime.now().isoformat()
-        update_fields["lastActiveAt"] = datetime.now().isoformat()
+        update_fields["turnedOnAt"] = now_utc
+        update_fields["lastActiveAt"] = now_utc
+        update_fields["lastSeenAt"] = now_utc
     else:
         update_fields["turnedOnAt"] = None
         update_fields["lastActiveAt"] = None
