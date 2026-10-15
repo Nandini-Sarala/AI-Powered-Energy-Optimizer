@@ -7,7 +7,8 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import {
   FiZap, FiDollarSign, FiTrendingUp, FiSun,
-  FiWind, FiDroplet, FiMapPin, FiRefreshCw, FiGift
+  FiWind, FiDroplet, FiMapPin, FiRefreshCw, FiGift,
+  FiBell, FiTrash2, FiX
 } from 'react-icons/fi';
 import './Dashboard.css';
 
@@ -68,11 +69,25 @@ const Dashboard = () => {
 
   // notifications state
   const [notifications, setNotifications] = useState([]);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const notifDropdownRef = useRef(null);
+
+  // Close notification dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notifDropdownRef.current && !notifDropdownRef.current.contains(e.target)) {
+        setShowNotifDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await api.get('/energy/notifications');
-      setNotifications(res.data);
+      // Keep only the most recent 15 notifications to avoid endless backlog
+      setNotifications(Array.isArray(res.data) ? res.data.slice(0, 15) : []);
     } catch (err) {
       console.warn('Failed to fetch notifications');
     }
@@ -84,6 +99,16 @@ const Dashboard = () => {
       await api.post('/energy/notifications/dismiss', { notificationId: nid });
     } catch (err) {
       console.error('Failed to dismiss notification', err);
+      fetchNotifications();
+    }
+  };
+
+  const dismissAllNotifications = async () => {
+    try {
+      setNotifications([]);
+      await api.post('/energy/notifications/dismiss', {});
+    } catch (err) {
+      console.error('Failed to clear notifications', err);
       fetchNotifications();
     }
   };
@@ -294,49 +319,6 @@ const Dashboard = () => {
 
   return (
     <div>
-      {/* ── Notifications Alerts ─────────────────────────────── */}
-      {notifications.length > 0 && (
-        <div className="notifications-alert-list fade-in-up" style={{ marginBottom: 20 }}>
-          {notifications.map((notif) => (
-            <div key={notif._id} className={`alert-notif-card ${notif.type || 'safety'}`} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              background: notif.type === 'overload' ? '#fff1f2' : '#fef3c7',
-              border: notif.type === 'overload' ? '1px solid #fecdd3' : '1px solid #fde68a',
-              borderRadius: 12, padding: '14px 20px', marginBottom: 10,
-              boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-              animation: 'fadeInUp 0.3s ease both'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: '1.4rem' }}>
-                  {notif.type === 'overload' ? '🚨' : '⚠️'}
-                </span>
-                <div>
-                  <h5 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 700, color: notif.type === 'overload' ? '#be123c' : '#b45309' }}>
-                    {notif.title}
-                  </h5>
-                  <p style={{ margin: '3px 0 0 0', fontSize: '0.8rem', color: notif.type === 'overload' ? '#9f1239' : '#92400e' }}>
-                    {notif.message}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => dismissNotification(notif._id)}
-                style={{
-                  background: 'none', border: 'none',
-                  color: notif.type === 'overload' ? '#be123c' : '#b45309',
-                  fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer',
-                  padding: '4px 8px', borderRadius: 4
-                }}
-                onMouseOver={(e) => e.target.style.textDecoration = 'underline'}
-                onMouseOut={(e) => e.target.style.textDecoration = 'none'}
-              >
-                Dismiss
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="dashboard-header">
         <div>
@@ -393,6 +375,92 @@ const Dashboard = () => {
           >
             <FiRefreshCw size={14} /> Refresh
           </button>
+
+          {/* ── Golden Notification Bell at Far Right ── */}
+          <div className="notif-bell-container" ref={notifDropdownRef}>
+            <button
+              className={`notif-bell-btn ${notifications.length > 0 ? 'has-alerts' : ''}`}
+              onClick={() => setShowNotifDropdown(prev => !prev)}
+              title="Notifications & Alerts"
+              aria-label="Notifications"
+            >
+              <FiBell size={18} />
+              {notifications.length > 0 && (
+                <span className="notif-badge">
+                  {notifications.length > 9 ? '9+' : notifications.length}
+                </span>
+              )}
+            </button>
+
+            {/* Notification Dropdown Menu */}
+            {showNotifDropdown && (
+              <div className="notif-dropdown-menu fade-in-up">
+                <div className="notif-dropdown-header">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#1e293b' }}>
+                      Alerts & Notifications
+                    </span>
+                    {notifications.length > 0 && (
+                      <span className="notif-count-pill">{notifications.length}</span>
+                    )}
+                  </div>
+                  {notifications.length > 0 && (
+                    <button
+                      className="notif-clear-all-btn"
+                      onClick={dismissAllNotifications}
+                      title="Clear all notifications"
+                    >
+                      <FiTrash2 size={12} /> Clear all
+                    </button>
+                  )}
+                </div>
+
+                <div className="notif-dropdown-list">
+                  {notifications.length === 0 ? (
+                    <div className="notif-empty-state">
+                      <span style={{ fontSize: '1.8rem', display: 'block', marginBottom: 6 }}>✨</span>
+                      <p style={{ margin: 0, fontWeight: 600, color: '#64748b', fontSize: '0.85rem' }}>
+                        All clear!
+                      </p>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        No pending alerts or outages
+                      </span>
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div
+                        key={notif._id}
+                        className={`notif-item ${notif.type || 'safety'}`}
+                      >
+                        <span className="notif-icon">
+                          {notif.type === 'overload' ? '🚨' : '⚠️'}
+                        </span>
+                        <div className="notif-content">
+                          <h6 className="notif-title">{notif.title}</h6>
+                          <p className="notif-message">{notif.message}</p>
+                          {notif.createdAt && (
+                            <span className="notif-time">
+                              {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          className="notif-item-dismiss"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            dismissNotification(notif._id);
+                          }}
+                          title="Dismiss"
+                        >
+                          <FiX size={13} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

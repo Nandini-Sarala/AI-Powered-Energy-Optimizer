@@ -164,6 +164,22 @@
   border-radius: 18px 18px 4px 18px;
 }
 
+/* ── Clickable Links inside bot messages ── */
+.bubble-content .bot-link {
+  color: #5eead4;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  font-weight: 500;
+  word-break: break-all;
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+.bubble-content .bot-link:hover {
+  color: #99f6e4;
+  text-shadow: 0 0 8px rgba(94, 234, 212, 0.4);
+}
+
 /* ── Suggestions ── */
 .suggestion-chips {
   display: flex;

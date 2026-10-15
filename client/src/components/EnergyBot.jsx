@@ -1,8 +1,77 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FiSend, FiX, FiMessageSquare } from 'react-icons/fi';
+import { FiSend, FiX, FiMessageSquare, FiExternalLink } from 'react-icons/fi';
 import api from '../services/api';
 import './EnergyBot.css';
 import { useAuth } from '../context/AuthContext';
+
+/**
+ * Parses bot message text and converts:
+ *  1. Markdown links  [text](url)  → clickable <a> tags
+ *  2. Bare URLs  https://... or http://...  → clickable <a> tags
+ *  3. **bold** → <strong>
+ * Returns an array of React elements.
+ */
+const renderMessageContent = (text) => {
+  if (!text) return text;
+
+  // Combined regex:  markdown links  |  bare URLs  |  **bold**
+  const combinedRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<>)\]]+)|(\*\*(.+?)\*\*)/g;
+
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = combinedRegex.exec(text)) !== null) {
+    // Push plain text before the match
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+
+    if (match[1] && match[2]) {
+      // Markdown link: [text](url)
+      parts.push(
+        <a
+          key={`link-${match.index}`}
+          href={match[2]}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bot-link"
+        >
+          {match[1]} <FiExternalLink size={12} style={{ marginLeft: 2, verticalAlign: 'middle' }} />
+        </a>
+      );
+    } else if (match[3] && !match[4]) {
+      // Bare URL
+      const url = match[3].replace(/[.,;:!?]+$/, ''); // strip trailing punctuation
+      parts.push(
+        <a
+          key={`url-${match.index}`}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bot-link"
+        >
+          {url} <FiExternalLink size={12} style={{ marginLeft: 2, verticalAlign: 'middle' }} />
+        </a>
+      );
+      // If we stripped punctuation, add it back as plain text
+      const stripped = match[3].slice(url.length);
+      if (stripped) parts.push(stripped);
+    } else if (match[4]) {
+      // **bold**
+      parts.push(<strong key={`b-${match.index}`}>{match[5]}</strong>);
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Push remaining text
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts;
+};
 
 const EnergyBot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -79,7 +148,7 @@ const EnergyBot = () => {
                   <div className="bot-avatar">⚡</div>
                 )}
                 <div className="bubble-content">
-                  {msg.content}
+                  {msg.role === 'bot' ? renderMessageContent(msg.content) : msg.content}
                 </div>
               </div>
             ))}
